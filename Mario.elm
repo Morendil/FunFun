@@ -11,28 +11,29 @@ import Window
 
 -- MODEL
 
-type alias Model =
-    { x : Float
-    , y : Float
-    , vx : Float
+type alias Model = Tile
+    { vx : Float
     , vy : Float
     , dir : Direction
     }
 
-type alias Terrain =
-    { w : Float
+type alias Terrain = Tile {}
+
+type alias Tile a =
+    { a |
+      w : Float
     , h : Float
     , x : Float
     , y : Float
     }
 
-left : Terrain -> Float
+left : Tile a -> Float
 left = .x
 
-right : Terrain -> Float
+right : Tile a -> Float
 right t = t.x + t.w
 
-top : Terrain -> Float
+top : Tile a -> Float
 top t = t.y + t.h
 
 type Direction = Left | Right
@@ -44,6 +45,8 @@ mario : Model
 mario =
     { x = 0
     , y = 0 
+    , w = 35
+    , h = 35
     , vx = 0
     , vy = 0
     , dir = Right
@@ -103,13 +106,6 @@ gravity dt mario =
         vy <- if mario.y > miny then mario.vy - dt/8 else 0
     }
 
-locate : Model -> Terrain
-locate mario = head (filter (marioOver mario) decor)
-
-marioOver : Model -> Terrain -> Bool
-marioOver mario platform =
-  mario.x > platform.x && mario.x < platform.x+platform.w 
-
 physics : Float -> Model -> Model
 physics dt mario =
     let maxx = left <| head <| Debug.watch "right" <| rightObstacles mario
@@ -167,16 +163,18 @@ view (w',h') mario =
 
       marioImage = image 35 35 src
 
-      groundY = 50 - 5 + 35/2 - h/2
+      -- 50 is "real" ground height, 5 is margin below Mario's feet, 35/2 is half his height
+      groundY = 50 - 5 + 35/2 - h/2 
 
       position = (mario.x, mario.y + groundY)
   in
-      collage w' h' (append (displayDecor (w,h))
-          [ marioImage
-              |> toForm
-              |> Debug.trace "mario"
-              |> move position
-          ])
+      collage w' h' <|
+        append (displayDecor (w,h)) 
+        [ marioImage
+               |> toForm
+               |> Debug.trace "mario"
+               |> move position
+        ]
 
 displayDecor : (Float, Float) -> List Form
 displayDecor (w,h) =
