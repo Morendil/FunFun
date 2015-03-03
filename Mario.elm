@@ -97,11 +97,10 @@ jump keys mario =
 
 gravity : Float -> Model -> Model
 gravity dt mario =
-  let whereMario = Debug.watch "where" (locate mario)
-      locations = Debug.watch "locs" 
+  let miny = top <| head <| reverse <| lowObstacles mario
     in
     { mario |
-        vy <- if mario.y > (whereMario.y+whereMario.h) then mario.vy - dt/8 else 0
+        vy <- if mario.y > miny then mario.vy - dt/8 else 0
     }
 
 locate : Model -> Terrain
@@ -127,15 +126,15 @@ physics dt mario =
 
 rightObstacles : Model -> List Terrain
 rightObstacles mario =
-  filter (\ pl -> mario.y >= pl.y && mario.y+2 < pl.y + pl.h && mario.x <= left pl) (sortBy left decor)
+  filter (\ pl -> mario.y >= pl.y && mario.y+2 < top pl && mario.x <= left pl) (sortBy left decor)
 
 leftObstacles : Model -> List Terrain
 leftObstacles mario =
-  filter (\ pl -> mario.y >= pl.y && mario.y+2 < pl.y + pl.h && mario.x >= right pl) (sortBy right decor)
+  filter (\ pl -> mario.y >= pl.y && mario.y+2 < top pl && mario.x >= right pl) (sortBy right decor)
 
 lowObstacles : Model -> List Terrain
 lowObstacles mario =
-  filter (\ pl -> mario.x >= pl.x && mario.x < pl.x + pl.w && mario.y >= top pl) (sortBy top decor)
+  filter (\ pl -> mario.x >= pl.x && mario.x < right pl && mario.y >= top pl) (sortBy top decor)
 
 walk : Keys -> Model -> Model
 walk keys mario =
@@ -220,4 +219,4 @@ input =
 -- get blocked by platforms on the sides - OK
 -- BUG(?) - with two stacked platforms only the lower constrains movement
   -- actually no - just that platforms only constrain Mario's feet!
--- BUG - can't jump from the top of a high platform
+-- BUG - can't jump from the top of a high platform -- fixed by rewriting gravity
