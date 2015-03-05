@@ -111,7 +111,7 @@ colliding mario =
 
 collidingWith : Tile a -> Tile b -> Bool
 collidingWith mario pl =
-  sameLevelAs mario pl && sameColumnAs mario pl && mario.y > pl.y
+  sameLevelAs mario pl && sameColumnAs mario pl 
 
 sameColumnAs : Tile a -> Tile b -> Bool
 sameColumnAs mario pl =
