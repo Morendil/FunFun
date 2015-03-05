@@ -45,8 +45,8 @@ mario : Model
 mario =
     { x = 0
     , y = 0 
-    , w = 35
-    , h = 35
+    , w = 16
+    , h = 20
     , vx = 0
     , vy = 0
     , dir = Right
@@ -61,7 +61,11 @@ decor = [
         {w = 30,
         h = 40,
         x = 0,
-        y = 70}
+        y = 70},
+        {w = 30,
+        h = 40,
+        x = 35,
+        y = 0}
         -- the ground
         ,{w = 99999,
         h = 0,
@@ -108,8 +112,8 @@ gravity dt mario =
 
 physics : Float -> Model -> Model
 physics dt mario =
-    let maxx = left <| head <| Debug.watch "right" <| rightObstacles mario
-        minx = right <| head <| reverse <| leftObstacles mario
+    let maxx = (left <| head <| Debug.watch "right" <| rightObstacles mario) - (mario.w/2)
+        minx = (right <| head <| reverse <| leftObstacles mario) + (mario.w/2)
         orgx = mario.x + dt * mario.vx
         maxy = 9999
         miny = top <| head <| reverse <| lowObstacles mario
@@ -193,7 +197,7 @@ displayPlatforms (w,h) = map (displayPlatform (w,h)) decor
 displayPlatform : (Float, Float) -> Terrain -> Form
 displayPlatform (w,h) platform =
               rect platform.w platform.h
-              |> filled red
+              |> filled blue
               |> move (platform.x + platform.w/2, platform.y+platform.h/2-h/2+49)
 
 -- SIGNALS
