@@ -68,9 +68,9 @@ decor = [
         y = 0}
         -- the ground
         ,{w = 99999,
-        h = 0,
+        h = 48,
         x = -9999,
-        y = 0}
+        y = -48}
         -- the far right
         ,{w = 0,
         h = 9999,
@@ -91,7 +91,10 @@ update (dt, keys) mario =
         |> gravity dt
         |> jump keys
         |> walk keys
-        |> physics dt
+        |> physics (dt/4)
+        |> physics (dt/4)
+        |> physics (dt/4)
+        |> physics (dt/4)        
         |> Debug.watch "mario"
 
 
@@ -103,30 +106,25 @@ jump keys mario =
 
 gravity : Float -> Model -> Model
 gravity dt mario =
-  let miny = top <| head <| reverse <| lowObstacles mario
+  let newx = mario.x + dt * mario.vx
+      newy = mario.y + dt * mario.vy
+      newmario = { mario | x <- newx, y <- newy }
     in
     { mario |
-        vy <- if mario.y > miny then mario.vy - dt/8 else 0
+        vy <- if any (collidingWith newmario) decor then 0 else mario.vy - dt/8
     }
 
-physics : Float -> Model -> Model
 physics dt mario =
-    let newmario = { mario | x <- newx, y <- newy }
-        maxx = (left <| head <| Debug.watch "right" <| rightObstacles mario) - (mario.w/2)
-        minx = (right <| head <| reverse <| leftObstacles mario) + (mario.w/2)
-        newx = mario.x + dt * mario.vx
-        maxy = 9999
-        miny = top <| head <| reverse <| lowObstacles mario
-        newy = mario.y + dt * mario.vy
-    in
-    { mario |
-        x <- clamp minx maxx newx,
-        y <- clamp miny 9999 newy
-    }
+  let newx = mario.x + dt * mario.vx
+      newy = mario.y + dt * mario.vy
+      newmario = { mario | x <- newx, y <- newy }
+      colliders = Debug.watch "collisions" <| filter (collidingWith mario) decor
+  in
+     if any (collidingWith newmario) decor then mario else newmario
 
 collidingWith : Tile a -> Tile b -> Bool
 collidingWith mario pl =
-  sameLevelAs mario pl && sameColumnAs mario pl
+  sameLevelAs mario pl && sameColumnAs mario pl && mario.y > pl.y
 
 sameColumnAs : Tile a -> Tile b -> Bool
 sameColumnAs mario pl =
