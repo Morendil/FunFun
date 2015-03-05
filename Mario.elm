@@ -83,16 +83,30 @@ decor = [
         y = 0}
         ]
 
+-- GENERAL
+
+and : (a -> Bool) -> (a -> Bool) -> a -> Bool
+and f g x =
+  f x && g x
+
+between : number -> number -> number -> Bool
+between min max x =
+  x >= min && x < max
+
+iterate : (a -> a) -> Int -> a -> a
+iterate f n =
+  foldr (<<) identity (repeat n f)
+
 -- UPDATE
 
 update : (Float, Keys) -> Model -> Model
 update (dt, keys) mario =
+    let n = 7 in
     mario
         |> jump keys
         |> walk keys
-        |> physics dt        
+        |> iterate (physics (dt/n)) n        
         |> Debug.watch "mario"
-
 
 jump : Keys -> Model -> Model
 jump keys mario =
@@ -147,14 +161,6 @@ leftOf mario pl =
 
 lowerThan mario pl =
   mario.y >= top pl
-
-between : number -> number -> number -> Bool
-between min max x =
-  x >= min && x < max
-
-and : (a -> Bool) -> (a -> Bool) -> a -> Bool
-and f g x =
-  f x && g x
 
 rightObstacles : Model -> List Terrain
 rightObstacles mario =
