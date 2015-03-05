@@ -43,44 +43,18 @@ type alias Keys = { x:Int, y:Int }
 
 mario : Model
 mario =
-    { x = 0
-    , y = 0 
-    , w = 16
-    , h = 20
-    , vx = 0
-    , vy = 0
-    , dir = Right
-    }
+    { x = 0 , y = 0 , w = 16 , h = 20 , vx = 0 , vy = 0 , dir = Right }
 
 decor : List Terrain
-decor = [
-        {w = 30,
-        h = 50,
-        x = 20,
-        y = 0},
-        {w = 30,
-        h = 20,
-        x = 20,
-        y = 85},
-        {w = 30,
-        h = 40,
-        x = 55,
-        y = 0}
+decor = [ {w = 30, h = 50, x = 20, y = 0},
+        {w = 30, h = 20, x = 20, y = 85},
+        {w = 30, h = 40, x = 55, y = 0}
         -- the ground
-        ,{w = 99999,
-        h = 48,
-        x = -9999,
-        y = -48}
+        ,{w = 99999, h = 48, x = -9999, y = -48}
         -- the far right
-        ,{w = 0,
-        h = 9999,
-        x = 9999,
-        y = 0}
+        ,{w = 0, h = 9999, x = 9999, y = 0}
         -- the far left
-        ,{w = 0,
-        h = 9999,
-        x = -9999,
-        y = 0}
+        ,{w = 0, h = 9999, x = -9999, y = 0}
         ]
 
 -- GENERAL
