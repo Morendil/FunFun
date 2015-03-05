@@ -44,7 +44,7 @@ type alias Keys = { x:Int, y:Int }
 mario : Model
 mario =
     { x = 0
-    , y = 100
+    , y = 0 
     , w = 16
     , h = 20
     , vx = 0
@@ -88,41 +88,47 @@ decor = [
 update : (Float, Keys) -> Model -> Model
 update (dt, keys) mario =
     mario
+        |> gravity dt
         |> jump keys
         |> walk keys
-        |> gravity dt
         |> physics dt
         |> Debug.watch "mario"
 
 
 jump : Keys -> Model -> Model
 jump keys mario =
-    if keys.y > 0 -- && mario.vy == 0
+    if keys.y > 0 && mario.vy == 0
       then { mario | vy <- 4.0 }
       else mario
 
 gravity : Float -> Model -> Model
-gravity dt mario = { mario | vy <- mario.vy - dt/8 }
+gravity dt mario =
+  let miny = top <| head <| reverse <| lowObstacles mario
+    in
+    { mario |
+        vy <- if mario.y > miny then mario.vy - dt/8 else 0
+    }
 
 physics : Float -> Model -> Model
 physics dt mario =
-    let newmario = Debug.watch "newmario" {
-          mario |
-          x <- newx, y <- newy, vy <- mario.vy }
+    let newmario = { mario | x <- newx, y <- newy }
+        maxx = (left <| head <| Debug.watch "right" <| rightObstacles mario) - (mario.w/2)
+        minx = (right <| head <| reverse <| leftObstacles mario) + (mario.w/2)
         newx = mario.x + dt * mario.vx
+        maxy = 9999
+        miny = top <| head <| reverse <| lowObstacles mario
         newy = mario.y + dt * mario.vy
-        marioCollided = 
-         if Debug.watch "colliding" <| any (collidingWith newmario) decor
-            then mario
-            else newmario
     in
-       { marioCollided | vy <- if marioCollided.y < mario.y then marioCollided.vy else dt/8 }
+    { mario |
+        x <- clamp minx maxx newx,
+        y <- clamp miny 9999 newy
+    }
 
-collidingWith : Model -> Tile b -> Bool
+collidingWith : Tile a -> Tile b -> Bool
 collidingWith mario pl =
   sameLevelAs mario pl && sameColumnAs mario pl
 
-sameColumnAs : Model -> Tile b -> Bool
+sameColumnAs : Tile a -> Tile b -> Bool
 sameColumnAs mario pl =
   (left pl, right pl) `intersects` (mario.x - mario.w/2, mario.x + mario.w/2)
 
@@ -144,7 +150,7 @@ leftOf mario pl =
 
 between : number -> number -> number -> Bool
 between min max x =
-  x >= min && x <= max
+  x >= min && x < max
 
 and : (a -> Bool) -> (a -> Bool) -> a -> Bool
 and f g x =
