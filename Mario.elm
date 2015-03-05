@@ -88,13 +88,9 @@ decor = [
 update : (Float, Keys) -> Model -> Model
 update (dt, keys) mario =
     mario
-        |> gravity dt
         |> jump keys
         |> walk keys
-        |> physics (dt/4)
-        |> physics (dt/4)
-        |> physics (dt/4)
-        |> physics (dt/4)        
+        |> physics dt        
         |> Debug.watch "mario"
 
 
@@ -104,23 +100,26 @@ jump keys mario =
       then { mario | vy <- 4.0 }
       else mario
 
-gravity : Float -> Model -> Model
-gravity dt mario =
-  let newx = mario.x + dt * mario.vx
-      newy = mario.y + dt * mario.vy
-      newmario = { mario | x <- newx, y <- newy }
-    in
-    { mario |
-        vy <- if any (collidingWith newmario) decor then 0 else mario.vy - dt/8
-    }
-
 physics dt mario =
   let newx = mario.x + dt * mario.vx
       newy = mario.y + dt * mario.vy
       newmario = { mario | x <- newx, y <- newy }
-      colliders = Debug.watch "collisions" <| filter (collidingWith mario) decor
+      y_mario = { mario | y <- newy }
+      x_mario = { mario | x <- newx }
+      newv = if any (collidingWith y_mario) decor then 0 else mario.vy - dt/8
+      newmario' = { newmario | vy <- newv }
+      x_mario' = { x_mario | vy <- newv }
+      y_mario' = { y_mario | vy <- newv }
+      colliders = Debug.watch "collisions" <| filter (collidingWith newmario) decor
   in
-     if any (collidingWith newmario) decor then mario else newmario
+     if colliding newmario then
+        (if colliding x_mario then
+          (if colliding y_mario then mario else y_mario')
+        else x_mario')
+     else newmario' 
+
+colliding mario =
+  any (collidingWith mario) decor
 
 collidingWith : Tile a -> Tile b -> Bool
 collidingWith mario pl =
@@ -187,7 +186,7 @@ view (w',h') mario =
   let (w,h) = (toFloat w', toFloat h')
 
       verb =
-        if  | mario.y  >  0 -> "jump"
+        if  | mario.y  >  0.5 -> "jump"
             | mario.vx /= 0 -> "walk"
             | otherwise     -> "stand"
 
