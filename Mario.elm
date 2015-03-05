@@ -59,7 +59,7 @@ decor = [
         x = 20,
         y = 0},
         {w = 30,
-        h = 40,
+        h = 20,
         x = 20,
         y = 85},
         {w = 30,
@@ -148,6 +148,9 @@ leftOf : Tile a -> Tile b -> Bool
 leftOf mario pl =
   mario.x >= right pl
 
+lowerThan mario pl =
+  mario.y >= top pl
+
 between : number -> number -> number -> Bool
 between min max x =
   x >= min && x < max
@@ -166,7 +169,7 @@ leftObstacles mario =
 
 lowObstacles : Model -> List Terrain
 lowObstacles mario =
-  filter (\ pl -> mario.x >= pl.x && mario.x < right pl && mario.y >= top pl) (sortBy top decor)
+  filter (sameColumnAs mario `and` lowerThan mario) (sortBy top decor)
 
 walk : Keys -> Model -> Model
 walk keys mario =
