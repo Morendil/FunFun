@@ -8,7 +8,6 @@ import Time (..)
 import List (..)
 import Window
 
-
 -- MODEL
 
 type alias Model = Tile
@@ -36,15 +35,16 @@ right t = t.x + t.w
 top : Tile a -> Float
 top t = t.y + t.h
 
+bottom = .y
+
 type Direction = Left | Right
 
 type alias Keys = { x:Int, y:Int }
 
-
 mario : Model
 mario =
     { x = 0
-    , y = 0 
+    , y = 100
     , w = 16
     , h = 20
     , vx = 0
@@ -56,15 +56,15 @@ decor : List Terrain
 decor = [
         {w = 30,
         h = 50,
-        x = 0,
+        x = 20,
         y = 0},
         {w = 30,
         h = 40,
-        x = 0,
-        y = 70},
+        x = 20,
+        y = 85},
         {w = 30,
         h = 40,
-        x = 35,
+        x = 55,
         y = 0}
         -- the ground
         ,{w = 99999,
@@ -88,49 +88,75 @@ decor = [
 update : (Float, Keys) -> Model -> Model
 update (dt, keys) mario =
     mario
-        |> gravity dt
         |> jump keys
         |> walk keys
+        |> gravity dt
         |> physics dt
         |> Debug.watch "mario"
 
 
 jump : Keys -> Model -> Model
 jump keys mario =
-    if keys.y > 0 && mario.vy == 0
+    if keys.y > 0 -- && mario.vy == 0
       then { mario | vy <- 4.0 }
       else mario
 
-
 gravity : Float -> Model -> Model
-gravity dt mario =
-  let miny = top <| head <| reverse <| lowObstacles mario
-    in
-    { mario |
-        vy <- if mario.y > miny then mario.vy - dt/8 else 0
-    }
+gravity dt mario = { mario | vy <- mario.vy - dt/8 }
 
 physics : Float -> Model -> Model
 physics dt mario =
-    let maxx = (left <| head <| Debug.watch "right" <| rightObstacles mario) - (mario.w/2)
-        minx = (right <| head <| reverse <| leftObstacles mario) + (mario.w/2)
-        orgx = mario.x + dt * mario.vx
-        maxy = 9999
-        miny = top <| head <| reverse <| lowObstacles mario
-        orgy = mario.y + dt * mario.vy
+    let newmario = Debug.watch "newmario" {
+          mario |
+          x <- newx, y <- newy, vy <- mario.vy }
+        newx = mario.x + dt * mario.vx
+        newy = mario.y + dt * mario.vy
+        marioCollided = 
+         if Debug.watch "colliding" <| any (collidingWith newmario) decor
+            then mario
+            else newmario
     in
-    { mario |
-        x <- max minx (min maxx orgx),
-        y <- max miny orgy
-    }
+       { marioCollided | vy <- if marioCollided.y < mario.y then marioCollided.vy else dt/8 }
+
+collidingWith : Model -> Tile b -> Bool
+collidingWith mario pl =
+  sameLevelAs mario pl && sameColumnAs mario pl
+
+sameColumnAs : Model -> Tile b -> Bool
+sameColumnAs mario pl =
+  (left pl, right pl) `intersects` (mario.x - mario.w/2, mario.x + mario.w/2)
+
+sameLevelAs : Tile a -> Tile b -> Bool
+sameLevelAs mario pl =
+  (bottom pl, top pl) `intersects` (bottom mario, top mario)
+
+intersects (min1, max1) (min2, max2) =
+  between min1 max1 min2 ||
+  between min2 max2 min1
+
+rightOf : Tile a -> Tile b -> Bool
+rightOf mario pl =
+  mario.x <= left pl       
+
+leftOf : Tile a -> Tile b -> Bool
+leftOf mario pl =
+  mario.x >= right pl
+
+between : number -> number -> number -> Bool
+between min max x =
+  x >= min && x <= max
+
+and : (a -> Bool) -> (a -> Bool) -> a -> Bool
+and f g x =
+  f x && g x
 
 rightObstacles : Model -> List Terrain
 rightObstacles mario =
-  filter (\ pl -> mario.y >= pl.y && mario.y+2 < top pl && mario.x <= left pl) (sortBy left decor)
+  filter (sameLevelAs mario `and` rightOf mario) (sortBy left decor)
 
 leftObstacles : Model -> List Terrain
 leftObstacles mario =
-  filter (\ pl -> mario.y >= pl.y && mario.y+2 < top pl && mario.x >= right pl) (sortBy right decor)
+  filter (sameLevelAs mario `and` leftOf mario) (sortBy right decor)
 
 lowObstacles : Model -> List Terrain
 lowObstacles mario =
@@ -197,7 +223,7 @@ displayPlatforms (w,h) = map (displayPlatform (w,h)) decor
 displayPlatform : (Float, Float) -> Terrain -> Form
 displayPlatform (w,h) platform =
               rect platform.w platform.h
-              |> filled blue
+              |> filled red
               |> move (platform.x + platform.w/2, platform.y+platform.h/2-h/2+49)
 
 -- SIGNALS
