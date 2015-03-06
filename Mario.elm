@@ -98,7 +98,6 @@ physics dt mario =
       newmario' = { newmario | vy <- newv }
       x_mario' = { x_mario | vy <- newv }
       y_mario' = { y_mario | vy <- newv }
-      colliders = Debug.watch "collisions" <| filter (collidingWith newmario) decor
   in
      if colliding newmario then
         (if colliding x_mario then
@@ -195,12 +194,7 @@ view (w',h') mario =
 displayDecor : (Float, Float) -> List Form
 displayDecor (w,h) =
           append 
-          [ rect w h
-              |> filled (rgb 174 238 238)
-          , rect w 50
-              |> filled (rgb 74 167 43)
-              |> move (0, 24 - h/2)
-          ]
+          [ rect w h |> filled (rgb 174 238 238) ]
           (displayPlatforms (w,h))
 
 displayPlatforms : (Float, Float) -> List Form
@@ -223,14 +217,6 @@ input : Signal (Float, Keys)
 input =
   let delta = Signal.map (\t -> t/20) (fps 30)
       deltaArrows =
-          Signal.map2 (,) delta (Signal.map (Debug.watch "arrows") Keyboard.arrows)
+          Signal.map2 (,) delta Keyboard.arrows
   in
       Signal.sampleOn delta deltaArrows
-
-
--- todo:
--- jump on top of platforms - OKish
--- get blocked by platforms on the sides - OK
--- BUG(?) - with two stacked platforms only the lower constrains movement
-  -- actually no - just that platforms only constrain Mario's feet!
--- BUG - can't jump from the top of a high platform -- fixed by rewriting gravity
