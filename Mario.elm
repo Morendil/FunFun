@@ -160,8 +160,8 @@ walk keys mario =
 
 -- VIEW
 
-view : (Int, Int) -> Model -> Element
-view (w',h') mario =
+view : String -> (Int, Int) -> Model -> Element
+view who (w',h') mario =
   let (w,h) = (toFloat w', toFloat h')
 
       verb =
@@ -174,7 +174,7 @@ view (w',h') mario =
           Left -> "left"
           Right -> "right"
 
-      src = "imgs/ghost/"++ verb ++ "/" ++ dir ++ ".gif"
+      src = "imgs/" ++ who ++ "/"++ verb ++ "/" ++ dir ++ ".gif"
 
       marioImage = image 35 35 src
 
@@ -214,10 +214,12 @@ displayPlatform (w,h) platform =
 
 main : Signal Element
 main =
-  let view1 = Signal.map viewDecor Window.dimensions
-      view2 = Signal.map2 view Window.dimensions (Signal.foldp update mario input)
+  let states = Signal.foldp update mario input
+      view1 = Signal.map viewDecor Window.dimensions
+      view2 = Signal.map2 (view "mario") Window.dimensions states
+      view3 = Signal.map2 (view "ghost") Window.dimensions (delay second states)
   in
-     Signal.map2 (\x y -> layers [x, y]) view1 view2
+     Signal.map3 (\x y z -> layers [x, y, z]) view1 view3 view2
 
 input : Signal (Float, Keys)
 input =
