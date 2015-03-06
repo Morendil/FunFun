@@ -7,6 +7,7 @@ import Signal
 import Time (..)
 import List (..)
 import Window
+import Signal.Extra
 
 -- MODEL
 
@@ -219,7 +220,7 @@ main =
       view2 = Signal.map2 (view "mario") Window.dimensions states
       view3 = Signal.map2 (view "ghost") Window.dimensions (delay second states)
   in
-     Signal.map3 (\x y z -> layers [x, y, z]) view1 view3 view2
+     Signal.Extra.mapMany layers [view1, view3, view2]
 
 input : Signal (Float, Keys)
 input =

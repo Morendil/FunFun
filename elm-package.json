@@ -1,0 +1,14 @@
+{
+    "version": "0.0.1",
+    "summary": "In The Company of Mario",
+    "repository": "https://github.com/Morendil/FunFun.git",
+    "license": "Whatever",
+    "source-directories": [
+        "."
+    ],
+    "exposed-modules": [],
+    "dependencies": {
+        "elm-lang/core": "1.1.1 <= v < 2.0.0",
+	"Apanatshka/elm-signal-extra" : "3.1.0 <= v < 4.0.0"
+    }
+}
