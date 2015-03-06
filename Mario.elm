@@ -203,7 +203,7 @@ displayPlatforms (w,h) = map (displayPlatform (w,h)) decor
 displayPlatform : (Float, Float) -> Terrain -> Form
 displayPlatform (w,h) platform =
               rect platform.w platform.h
-              |> filled red
+              |> filled (if platform.y < 0 then green else red)
               |> move (platform.x + platform.w/2, platform.y+platform.h/2-h/2+49)
 
 -- SIGNALS
