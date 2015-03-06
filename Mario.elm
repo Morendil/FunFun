@@ -97,13 +97,14 @@ physics dt mario =
       x_mario = { mario | x <- newx }
       support = Debug.watch "floor" <| filter (collidingWith y_mario) decor
       newv = if any (collidingWith y_mario) decor then 0 else mario.vy - dt/8
-      newmario = if colliding xymario then
-                    (if colliding y_mario then
-                      (if colliding x_mario then mario else x_mario)
-                    else y_mario)
-                  else xymario 
+      newmario = firstNonColliding [xymario, y_mario, x_mario, mario]
   in
      {newmario | vy <- newv}
+
+-- maybe not ideal, Elm being non-lazy
+firstNonColliding : List Model -> Model
+firstNonColliding list =
+  head <| filter (\ mario -> not (colliding mario)) list
 
 colliding mario =
   any (collidingWith mario) decor
