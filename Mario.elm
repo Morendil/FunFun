@@ -165,7 +165,7 @@ view (w',h') mario =
   let (w,h) = (toFloat w', toFloat h')
 
       verb =
-        if  | mario.y  >  0.5 -> "jump"
+        if  | abs mario.vy  >  0.05 -> "jump"
             | mario.vx /= 0 -> "walk"
             | otherwise     -> "stand"
 
@@ -174,7 +174,7 @@ view (w',h') mario =
           Left -> "left"
           Right -> "right"
 
-      src = "imgs/mario/"++ verb ++ "/" ++ dir ++ ".gif"
+      src = "imgs/ghost/"++ verb ++ "/" ++ dir ++ ".gif"
 
       marioImage = image 35 35 src
 
@@ -184,12 +184,16 @@ view (w',h') mario =
       position = (mario.x, mario.y + groundY)
   in
       collage w' h' <|
-        append (displayDecor (w,h)) 
         [ marioImage
                |> toForm
                |> Debug.trace "mario"
                |> move position
         ]
+
+viewDecor : (Int, Int) -> Element
+viewDecor (w',h') =
+  let (w,h) = (toFloat w', toFloat h')
+  in collage w' h' <| displayDecor (w,h)
 
 displayDecor : (Float, Float) -> List Form
 displayDecor (w,h) =
@@ -210,13 +214,14 @@ displayPlatform (w,h) platform =
 
 main : Signal Element
 main =
-  Signal.map2 view Window.dimensions (Signal.foldp update mario input)
-
+  let view1 = Signal.map viewDecor Window.dimensions
+      view2 = Signal.map2 view Window.dimensions (Signal.foldp update mario input)
+  in
+     Signal.map2 (\x y -> layers [x, y]) view1 view2
 
 input : Signal (Float, Keys)
 input =
   let delta = Signal.map (\t -> t/20) (fps 30)
-      deltaArrows =
-          Signal.map2 (,) delta Keyboard.arrows
+      deltaArrows = Signal.map2 (,) delta Keyboard.arrows
   in
       Signal.sampleOn delta deltaArrows
