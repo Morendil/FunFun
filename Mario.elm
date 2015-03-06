@@ -76,7 +76,7 @@ iterate f n =
 
 update : (Float, Keys) -> Model -> Model
 update (dt, keys) mario =
-    let n = 7 in
+    let n = 6 in
     mario
         |> jump keys
         |> walk keys
@@ -92,19 +92,18 @@ jump keys mario =
 physics dt mario =
   let newx = mario.x + dt * mario.vx
       newy = mario.y + dt * mario.vy
-      newmario = { mario | x <- newx, y <- newy }
-      y_mario = { mario | y <- newy }
+      xymario = { mario | x <- newx, y <- newy }
+      y_mario = { mario | y <- newy - 0.01} -- test whether Mario is supported
       x_mario = { mario | x <- newx }
+      support = Debug.watch "floor" <| filter (collidingWith y_mario) decor
       newv = if any (collidingWith y_mario) decor then 0 else mario.vy - dt/8
-      newmario' = { newmario | vy <- newv }
-      x_mario' = { x_mario | vy <- newv }
-      y_mario' = { y_mario | vy <- newv }
+      newmario = if colliding xymario then
+                    (if colliding y_mario then
+                      (if colliding x_mario then mario else x_mario)
+                    else y_mario)
+                  else xymario 
   in
-     if colliding newmario then
-        (if colliding x_mario then
-          (if colliding y_mario then mario else y_mario')
-        else x_mario')
-     else newmario' 
+     {newmario | vy <- newv}
 
 colliding mario =
   any (collidingWith mario) decor
@@ -166,9 +165,9 @@ view who (w',h') mario =
   let (w,h) = (toFloat w', toFloat h')
 
       verb =
-        if  | abs mario.vy  >  0.05 -> "jump"
-            | mario.vx /= 0 -> "walk"
-            | otherwise     -> "stand"
+        if  | abs mario.vy > 0 -> "jump"
+            | mario.vx /= 0    -> "walk"
+            | otherwise        -> "stand"
 
       dir =
         case mario.dir of
