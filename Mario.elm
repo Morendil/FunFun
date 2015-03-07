@@ -11,7 +11,12 @@ import Signal.Extra
 
 -- MODEL
 
-type alias Model = Tile
+type alias World = List Character
+type alias Pending = List (Float, Keys)
+
+type Character = Active Figure | Sleeping Figure Pending | Ghost Figure Pending
+
+type alias Figure = Tile
     { vx : Float
     , vy : Float
     , dir : Direction
@@ -42,9 +47,12 @@ type Direction = Left | Right
 
 type alias Keys = { x:Int, y:Int }
 
-mario : Model
+mario : Figure
 mario =
-    { x = 0 , y = 0 , w = 16 , h = 20 , vx = 0 , vy = 0 , dir = Right }
+  { x = 0 , y = 0 , w = 16 , h = 20 , vx = 0 , vy = 0 , dir = Right }
+
+marios : World
+marios = [Active mario, Sleeping mario []]
 
 decor : List Terrain
 decor = [ {w = 30, h = 50, x = 20, y = 0},
@@ -74,8 +82,19 @@ iterate f n =
 
 -- UPDATE
 
-update : (Float, Keys) -> Model -> Model
-update (dt, keys) mario =
+updateWorld : (Float, Keys, Bool) -> World -> World
+updateWorld =
+  map << update
+
+update : (Float, Keys, Bool) -> Character -> Character
+update (dt, keys, sp) mario' =
+    case mario' of 
+      Active m -> Active (updateActive (dt,keys) m)
+      Sleeping m x -> if sp then Ghost m x else Sleeping m (append x [(dt,keys)])
+      Ghost m [] -> Ghost (updateActive (dt,{x=0,y=0}) m) []
+      Ghost m x -> Ghost (updateActive (head x) m) (tail x)
+
+updateActive (dt,keys) mario =
     let n = 6 in
     mario
         |> jump keys
@@ -83,7 +102,7 @@ update (dt, keys) mario =
         |> iterate (physics (dt/n)) n        
         |> Debug.watch "mario"
 
-jump : Keys -> Model -> Model
+jump : Keys -> Figure -> Figure
 jump keys mario =
     if keys.y > 0 && mario.vy == 0
       then { mario | vy <- 4.0 }
@@ -102,7 +121,7 @@ physics dt mario =
      {newmario | vy <- newv}
 
 -- maybe not ideal, Elm being non-lazy
-firstNonColliding : List Model -> Model
+firstNonColliding : List Figure -> Figure
 firstNonColliding list =
   head <| filter (\ mario -> not (colliding mario)) list
 
@@ -136,19 +155,19 @@ leftOf mario pl =
 lowerThan mario pl =
   mario.y >= top pl
 
-rightObstacles : Model -> List Terrain
+rightObstacles : Figure -> List Terrain
 rightObstacles mario =
   filter (sameLevelAs mario `and` rightOf mario) (sortBy left decor)
 
-leftObstacles : Model -> List Terrain
+leftObstacles : Figure -> List Terrain
 leftObstacles mario =
   filter (sameLevelAs mario `and` leftOf mario) (sortBy right decor)
 
-lowObstacles : Model -> List Terrain
+lowObstacles : Figure -> List Terrain
 lowObstacles mario =
   filter (sameColumnAs mario `and` lowerThan mario) (sortBy top decor)
 
-walk : Keys -> Model -> Model
+walk : Keys -> Figure -> Figure
 walk keys mario =
     { mario |
         vx <- toFloat keys.x,
@@ -161,8 +180,19 @@ walk keys mario =
 
 -- VIEW
 
-view : String -> (Int, Int) -> Model -> Element
-view who (w',h') mario =
+viewWorld : (Int, Int) -> World -> Element
+viewWorld dims world =
+  layers (map (view dims) world) 
+
+view : (Int, Int) -> Character -> Element
+view (w',h') mario' =
+  case mario' of
+    Active mario -> viewActive (w',h') "mario" mario
+    Ghost mario _ -> viewActive (w',h') "ghost" mario
+    Sleeping _ _ -> empty
+
+viewActive : (Int, Int) -> String -> Figure -> Element
+viewActive (w',h') who mario =
   let (w,h) = (toFloat w', toFloat h')
 
       verb =
@@ -215,16 +245,15 @@ displayPlatform (w,h) platform =
 
 main : Signal Element
 main =
-  let states = Signal.foldp update mario input
+  let states = Signal.foldp updateWorld marios input
       view1 = Signal.map viewDecor Window.dimensions
-      view2 = Signal.map2 (view "mario") Window.dimensions states
-      view3 = Signal.map2 (view "ghost") Window.dimensions (delay second states)
+      view2 = Signal.map2 viewWorld Window.dimensions states
   in
-     Signal.Extra.mapMany layers [view1, view3, view2]
+     Signal.Extra.mapMany layers [view1, view2]
 
-input : Signal (Float, Keys)
+input : Signal (Float, Keys, Bool)
 input =
   let delta = Signal.map (\t -> t/20) (fps 30)
-      deltaArrows = Signal.map2 (,) delta Keyboard.arrows
+      deltaArrows = Signal.map3 (,,) delta Keyboard.arrows Keyboard.space
   in
       Signal.sampleOn delta deltaArrows
