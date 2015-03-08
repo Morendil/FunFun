@@ -144,29 +144,6 @@ intersects (min1, max1) (min2, max2) =
   between min1 max1 min2 ||
   between min2 max2 min1
 
-rightOf : Tile a -> Tile b -> Bool
-rightOf mario pl =
-  mario.x <= left pl       
-
-leftOf : Tile a -> Tile b -> Bool
-leftOf mario pl =
-  mario.x >= right pl
-
-lowerThan mario pl =
-  mario.y >= top pl
-
-rightObstacles : Figure -> List Terrain
-rightObstacles mario =
-  filter (sameLevelAs mario `and` rightOf mario) (sortBy left decor)
-
-leftObstacles : Figure -> List Terrain
-leftObstacles mario =
-  filter (sameLevelAs mario `and` leftOf mario) (sortBy right decor)
-
-lowObstacles : Figure -> List Terrain
-lowObstacles mario =
-  filter (sameColumnAs mario `and` lowerThan mario) (sortBy top decor)
-
 walk : Keys -> Figure -> Figure
 walk keys mario =
     { mario |
