@@ -14,7 +14,7 @@ import Signal.Extra
 type alias World = List Character
 type alias Pending = List (Float, Keys)
 
-type Character = Active Figure | Sleeping Figure Pending | Ghost Figure Pending
+type Character = Active Figure | Sleeping Figure Pending | Ghost Figure Pending Pending
 
 type alias Figure = Tile
     { vx : Float
@@ -83,16 +83,23 @@ iterate f n =
 -- UPDATE
 
 updateWorld : (Float, Keys, Bool) -> World -> World
-updateWorld =
-  map << update
+updateWorld (f,k,sp) w =
+  let w' = (map << update) (f,k,sp) w
+  in
+     if sp then (Active mario) :: (append (map reset (tail w')) [Sleeping mario []]) else w'
+
+reset : Character -> Character
+reset x = case x of
+            Ghost m old sav -> Ghost mario sav sav
+            _ -> x
 
 update : (Float, Keys, Bool) -> Character -> Character
 update (dt, keys, sp) mario' =
     case mario' of 
       Active m -> Active (updateActive (dt,keys) m)
-      Sleeping m x -> if sp then Ghost m x else Sleeping m (append x [(dt,keys)])
-      Ghost m [] -> Ghost (updateActive (dt,{x=0,y=0}) m) []
-      Ghost m x -> Ghost (updateActive (head x) m) (tail x)
+      Sleeping m x -> if sp then Ghost m x x else Sleeping m (append x [(dt,keys)])
+      Ghost m [] sav -> Ghost (updateActive (dt,{x=0,y=0}) m) [] sav
+      Ghost m x sav -> Ghost (updateActive (head x) m) (tail x) sav
 
 updateActive (dt,keys) mario =
     let n = 6 in
@@ -165,7 +172,7 @@ view : (Int, Int) -> Character -> Element
 view (w',h') mario' =
   case mario' of
     Active mario -> viewActive (w',h') "mario" mario
-    Ghost mario _ -> viewActive (w',h') "ghost" mario
+    Ghost mario _ _ -> viewActive (w',h') "ghost" mario
     Sleeping _ _ -> empty
 
 viewActive : (Int, Int) -> String -> Figure -> Element
