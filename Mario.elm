@@ -8,6 +8,7 @@ import Time (..)
 import List (..)
 import Window
 import Signal.Extra
+import Signal.Time
 
 -- MODEL
 
@@ -82,22 +83,26 @@ iterate f n =
 
 -- UPDATE
 
-updateWorld : (Float, Keys, Bool) -> World -> World
-updateWorld (f,k,sp) w =
-  let w' = (map << update) (f,k,sp) w
-  in
-     if sp then (Active mario) :: (append (map reset (tail w')) [Sleeping mario []]) else w'
+type Update = Spawn Bool | Move (Float, Keys)
 
-reset : Character -> Character
-reset x = case x of
+updateWorld : Update -> World -> World
+updateWorld u world =
+  case u of 
+    Spawn true -> (Active mario) :: (append (map cycle (tail world)) [Sleeping mario []])
+    Move move -> map (update move) world
+    _ -> world
+
+cycle : Character -> Character
+cycle x = case x of
+            Sleeping m x -> Ghost m x x
             Ghost m old sav -> Ghost mario sav sav
             _ -> x
 
-update : (Float, Keys, Bool) -> Character -> Character
-update (dt, keys, sp) mario' =
+update : (Float, Keys) -> Character -> Character
+update (dt, keys) mario' =
     case mario' of 
-      Active m -> Active (updateActive (dt,keys) m)
-      Sleeping m x -> if sp then Ghost m x x else Sleeping m (append x [(dt,keys)])
+      Active m -> Active (updateActive (dt,keys) m)      
+      Sleeping m x -> Sleeping m (append x [(dt,keys)])
       Ghost m [] sav -> Ghost (updateActive (dt,{x=0,y=0}) m) [] sav
       Ghost m x sav -> Ghost (updateActive (head x) m) (tail x) sav
 
@@ -160,7 +165,6 @@ walk keys mario =
               | keys.x > 0 -> Right
               | otherwise  -> mario.dir
     }
-
 
 -- VIEW
 
@@ -235,9 +239,11 @@ main =
   in
      Signal.Extra.mapMany layers [view1, view2]
 
-input : Signal (Float, Keys, Bool)
+input : Signal Update
 input =
   let delta = Signal.map (\t -> t/20) (fps 30)
-      deltaArrows = Signal.map3 (,,) delta Keyboard.arrows Keyboard.space
+      deltaArrows = Signal.map2 (,) delta Keyboard.arrows
+      moves = Signal.map Move (Signal.sampleOn delta deltaArrows)
+      spawns = Signal.map Spawn (Signal.Time.dropWithin second Keyboard.space)
   in
-      Signal.sampleOn delta deltaArrows
+      Signal.merge moves spawns
