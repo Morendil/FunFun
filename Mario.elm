@@ -50,7 +50,7 @@ type alias Keys = { x:Int, y:Int }
 
 mario : Figure
 mario =
-  { x = 0 , y = 0 , w = 16 , h = 20 , vx = 0 , vy = 0 , dir = Right }
+  { x = 0 , y = 0 , w = 16 , h = 26 , vx = 0 , vy = 0 , dir = Right }
 
 marios : World
 marios = [Active mario, Sleeping mario []]
@@ -197,15 +197,10 @@ viewActive (w,h) who mario =
       src = "imgs/" ++ who ++ "/"++ verb ++ "/" ++ dir ++ ".gif"
 
       marioImage = image 35 35 src
-
-      -- 50 is "real" ground height, 5 is margin below Mario's feet, 35/2 is half his height
-      groundY = 50 - 5 + 35/2 - h/2 
-
-      position = (mario.x, mario.y + groundY)
   in
     marioImage
        |> toForm
-       |> move position
+       |> positionC (w,h) mario
 
 displayDecor : (Float, Float) -> List Form
 displayDecor (w,h) =
@@ -217,7 +212,17 @@ displayPlatform : (Float, Float) -> Terrain -> Form
 displayPlatform (w,h) platform =
               rect platform.w platform.h
               |> filled (if platform.y < 0 then green else red)
-              |> move (platform.x + platform.w/2, platform.y+platform.h/2-h/2+49)
+              |> positionP (w,h) platform
+
+positionP : (Float, Float) -> Terrain -> Form -> Form
+positionP (w, h) platform =
+  move (platform.x+platform.w/2, platform.y+platform.h/2-h/2+base) 
+
+positionC : (Float, Float) -> Figure -> Form -> Form
+positionC (w, h) mario =
+  move (mario.x, mario.y+mario.h/2-h/2+base)
+
+base = 50
 
 -- SIGNALS
 
