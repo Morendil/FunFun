@@ -15,33 +15,30 @@ import Signal.Time
 type alias World = List Character
 type alias Pending = List (Float, Keys)
 
+type Tile = Moving Figure | Static Terrain
 type Character = Active Figure | Sleeping Figure Pending | Ghost Figure Pending Pending
 
-type alias Figure = Tile
-    { vx : Float
+type alias Figure = 
+    { x : Float
+    , y : Float
+    , w : Float
+    , h : Float
+    , vx : Float
     , vy : Float
     , dir : Direction
     }
 
-type alias Terrain = Tile {}
-
-type alias Tile a =
-    { a |
-      w : Float
-    , h : Float
-    , x : Float
+type alias Terrain = 
+    { x : Float
     , y : Float
+    , w : Float
+    , h : Float
     }
 
-left : Tile a -> Float
-left = .x
-
-right : Tile a -> Float
+-- still something not quite right about these
 right t = t.x + t.w
-
-top : Tile a -> Float
 top t = t.y + t.h
-
+left = .x
 bottom = .y
 
 type Direction = Left | Right
@@ -137,15 +134,15 @@ firstNonColliding list =
 colliding mario =
   any (collidingWith mario) decor
 
-collidingWith : Tile a -> Tile b -> Bool
+collidingWith : Figure -> Terrain -> Bool
 collidingWith mario pl =
   sameLevelAs mario pl && sameColumnAs mario pl 
 
-sameColumnAs : Tile a -> Tile b -> Bool
+sameColumnAs : Figure -> Terrain -> Bool
 sameColumnAs mario pl =
   (left pl, right pl) `intersects` (mario.x - mario.w/2, mario.x + mario.w/2)
 
-sameLevelAs : Tile a -> Tile b -> Bool
+sameLevelAs : Figure -> Terrain -> Bool
 sameLevelAs mario pl =
   (bottom pl, top pl) `intersects` (bottom mario, top mario)
 
@@ -200,7 +197,7 @@ viewActive (w,h) who mario =
   in
     marioImage
        |> toForm
-       |> positionC (w,h) mario
+       |> position (w,h) (Moving mario)
 
 displayDecor : (Float, Float) -> List Form
 displayDecor (w,h) =
@@ -212,15 +209,13 @@ displayPlatform : (Float, Float) -> Terrain -> Form
 displayPlatform (w,h) platform =
               rect platform.w platform.h
               |> filled (if platform.y < 0 then green else red)
-              |> positionP (w,h) platform
+              |> position (w,h) (Static platform)
 
-positionP : (Float, Float) -> Terrain -> Form -> Form
-positionP (w, h) platform =
-  move (platform.x+platform.w/2, platform.y+platform.h/2-h/2+base) 
-
-positionC : (Float, Float) -> Figure -> Form -> Form
-positionC (w, h) mario =
-  move (mario.x, mario.y+mario.h/2-h/2+base)
+position : (Float, Float) -> Tile -> Form -> Form
+position (w,h) tile =
+  case tile of
+    Static platform -> move (platform.x+platform.w/2, platform.y+platform.h/2-h/2+base) 
+    Moving mario -> move (mario.x, mario.y+mario.h/2-h/2+base)
 
 base = 50
 
