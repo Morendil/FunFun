@@ -57,14 +57,11 @@ marios = [Active mario, Sleeping mario []]
 
 decor : List Terrain
 decor = [ {w = 30, h = 50, x = 20, y = 0},
-        {w = 30, h = 20, x = 20, y = 85},
-        {w = 30, h = 40, x = 55, y = 0}
-        -- the ground
-        ,{w = 99999, h = 48, x = -9999, y = -48}
-        -- the far right
-        ,{w = 0, h = 9999, x = 9999, y = 0}
-        -- the far left
-        ,{w = 0, h = 9999, x = -9999, y = 0}
+          {w = 30, h = 20, x = 20, y = 85},
+          {w = 30, h = 40, x = 55, y = 0},
+          {w = 99999, h = 48, x = -9999, y = -48}, -- the ground
+          {w = 0, h = 9999, x = 9999, y = 0}, -- the far right
+          {w = 0, h = 9999, x = -9999, y = 0} -- the far left
         ]
 
 -- GENERAL
