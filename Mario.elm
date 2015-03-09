@@ -176,7 +176,7 @@ viewWorld (w, h) world =
     static = displayDecor dims
   in
   collage w h <|
-    append static moving
+    append static (reverse moving)
 
 view : (Float, Float) -> Character -> Form
 view dims mario' =
