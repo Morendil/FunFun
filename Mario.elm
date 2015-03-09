@@ -169,21 +169,25 @@ walk keys mario =
 -- VIEW
 
 viewWorld : (Int, Int) -> World -> Element
-viewWorld dims world =
-  layers (map (view dims) world) 
+viewWorld (w, h) world =
+  let 
+    dims = (toFloat w, toFloat h)
+    moving = map (view dims) world
+    static = displayDecor dims
+  in
+  collage w h <|
+    append static moving
 
-view : (Int, Int) -> Character -> Element
-view (w',h') mario' =
+view : (Float, Float) -> Character -> Form
+view dims mario' =
   case mario' of
-    Active mario -> viewActive (w',h') "mario" mario
-    Ghost mario _ _ -> viewActive (w',h') "ghost" mario
-    Sleeping _ _ -> empty
+    Active mario -> Debug.trace "mario" (viewActive dims "mario" mario)
+    Ghost mario _ _ -> viewActive dims "ghost" mario
+    Sleeping _ _ -> toForm empty
 
-viewActive : (Int, Int) -> String -> Figure -> Element
-viewActive (w',h') who mario =
-  let (w,h) = (toFloat w', toFloat h')
-
-      verb =
+viewActive : (Float, Float) -> String -> Figure -> Form
+viewActive (w,h) who mario =
+  let verb =
         if  | abs mario.vy > 0 -> "jump"
             | mario.vx /= 0    -> "walk"
             | otherwise        -> "stand"
@@ -202,26 +206,15 @@ viewActive (w',h') who mario =
 
       position = (mario.x, mario.y + groundY)
   in
-      collage w' h' <|
-        [ marioImage
-               |> toForm
-               |> Debug.trace "mario"
-               |> move position
-        ]
-
-viewDecor : (Int, Int) -> Element
-viewDecor (w',h') =
-  let (w,h) = (toFloat w', toFloat h')
-  in collage w' h' <| displayDecor (w,h)
+    marioImage
+       |> toForm
+       |> move position
 
 displayDecor : (Float, Float) -> List Form
 displayDecor (w,h) =
           append 
           [ rect w h |> filled (rgb 174 238 238) ]
-          (displayPlatforms (w,h))
-
-displayPlatforms : (Float, Float) -> List Form
-displayPlatforms (w,h) = map (displayPlatform (w,h)) decor
+          (map (displayPlatform (w,h)) decor)
 
 displayPlatform : (Float, Float) -> Terrain -> Form
 displayPlatform (w,h) platform =
@@ -234,10 +227,8 @@ displayPlatform (w,h) platform =
 main : Signal Element
 main =
   let states = Signal.foldp updateWorld marios input
-      view1 = Signal.map viewDecor Window.dimensions
-      view2 = Signal.map2 viewWorld Window.dimensions states
   in
-     Signal.Extra.mapMany layers [view1, view2]
+     Signal.map2 viewWorld Window.dimensions states
 
 input : Signal Update
 input =
