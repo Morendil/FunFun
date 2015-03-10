@@ -12,6 +12,8 @@ import Signal
 type alias Model =
     { x   : Float
     , y   : Float
+    , w   : Float
+    , h   : Float
     , vx  : Float
     , vy  : Float
     , dir : Direction
@@ -25,6 +27,8 @@ mario : Model
 mario =
     { x = 0
     , y = 0 
+    , w = 16
+    , h = 26
     , vx = 0
     , vy = 0
     , dir = Right
@@ -81,7 +85,7 @@ display (w',h') mario =
 
       marioImage = image 35 35 src
 
-      groundY = 62 - h/2
+      base = 50
   in
       collage w' h'
           [ rect w h
@@ -92,7 +96,7 @@ display (w',h') mario =
           , marioImage
               |> toForm
               |> Debug.trace "mario"
-              |> move (mario.x, mario.y + groundY)
+              |> move (mario.x, mario.y+mario.h/2-h/2+base)
           ]
 
 
