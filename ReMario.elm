@@ -14,6 +14,10 @@ between : number -> number -> number -> Bool
 between min max x =
   x >= min && x < max
 
+intersects (min1, max1) (min2, max2) =
+  between min1 max1 min2 ||
+  between min2 max2 min1
+
 iterate : (a -> a) -> Int -> a -> a
 iterate f n =
   foldr (<<) identity (repeat n f)
@@ -104,21 +108,31 @@ jump : Keys -> BasicSprite -> BasicSprite
 jump keys mario =
     if keys.y > 0 && mario.vy == 0 then { mario | vy <- 4.0 } else mario
 
-supports mario p =
+blocks mario p =
   case p of
-    Platform pl -> between (pl.y-pl.h) pl.y mario.y && between (pl.x-pl.w/2) (pl.x+pl.w/2) mario.x
+    Platform pl ->
+      let plft = pl.x-pl.w/2
+          prgt = pl.x+pl.w/2
+          ptop = pl.y
+          pbot = pl.y-pl.h
+          mlft = mario.x-mario.w/2
+          mrgt = mario.x+mario.w/2
+          mtop = mario.y+mario.h
+          mbot = mario.y
+      in intersects (plft,prgt) (mlft,mrgt) && intersects (pbot,ptop) (mbot,mtop) 
     _ -> False
 
 physics : Float -> World -> BasicSprite -> BasicSprite
 physics dt world mario =
-    let newy = mario.y + dt * mario.vy - 0.01 -- fudge factor to "test" our feet
-        support = filter (supports {mario | y <- newy}) world
+    let newx = mario.x + dt * mario.vx
+        newy = mario.y + dt * mario.vy - 0.01 -- fudge factor to "test" our feet
+        support = filter (blocks {mario | y <- newy}) world
+        blockers = filter (blocks {mario | x <- newx}) world
         newv = if (isEmpty support) then mario.vy - dt/8 else 0
-        f = Debug.watch "floor" support
     in
     Debug.watch "mario" <| 
     { mario |
-        x <- mario.x + dt * mario.vx,
+        x <- if (isEmpty blockers) then newx else mario.x,
         y <- if (isEmpty support) then newy else mario.y,
         vy <- newv
     }
