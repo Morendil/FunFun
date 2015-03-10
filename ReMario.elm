@@ -12,7 +12,9 @@ import List (..)
 
 type alias World = List Sprite
 
-type alias Sprite =
+type Sprite = Sky BasicSprite | Platform BasicSprite | Player BasicSprite
+
+type alias BasicSprite =
     { x   : Float
     , y   : Float
     , w   : Float
@@ -28,7 +30,7 @@ type alias Keys = { x:Int, y:Int }
 
 start_state : World
 start_state = [
-    { x = 0
+    Player { x = 0
     , y = 0 
     , w = 16
     , h = 26
@@ -37,10 +39,19 @@ start_state = [
     , dir = Right
     },
     -- the floor
-    { x = -999
+    Platform { x = 0
     , y = 0 
-    , w = 2*999
+    , w = 9999
     , h = 50
+    , vx = 0
+    , vy = 0
+    , dir = Right
+    }, 
+    -- the sky
+    Sky { x = 0
+    , y = 0 
+    , w = 9999
+    , h = 9999
     , vx = 0
     , vy = 0
     , dir = Right
@@ -54,18 +65,24 @@ step move world =
   map (stepOne move) world
 
 stepOne : (Float, Keys) -> Sprite -> Sprite
-stepOne (dt, keys) mario =
+stepOne dims sprite = case sprite of
+  Player sprite' -> Player (stepPlayer dims sprite')
+  Platform sprite' -> sprite
+  Sky sprite' -> sprite
+
+stepPlayer : (Float, Keys) -> BasicSprite -> BasicSprite
+stepPlayer (dt, keys) mario =
     mario
         |> jump keys
         |> walk keys
         |> physics dt
         |> Debug.watch "mario"
 
-jump : Keys -> Sprite -> Sprite
+jump : Keys -> BasicSprite -> BasicSprite
 jump keys mario =
     if keys.y > 0 && mario.vy == 0 then { mario | vy <- 6.0 } else mario
 
-physics : Float -> Sprite -> Sprite
+physics : Float -> BasicSprite -> BasicSprite
 physics dt mario =
     { mario |
         x <- mario.x + dt * mario.vx,
@@ -73,7 +90,7 @@ physics dt mario =
         vy <- if mario.y > 0 then mario.vy - dt/4 else 0
     }
 
-walk : Keys -> Sprite -> Sprite
+walk : Keys -> BasicSprite -> BasicSprite
 walk keys mario =
     { mario |
         vx <- toFloat keys.x,
@@ -90,7 +107,13 @@ display (w',h') world =
   collage w' h' (concatMap (displayOne (w',h')) (reverse world))
 
 displayOne : (Int, Int) -> Sprite -> List Form
-displayOne (w',h') mario =
+displayOne dims sprite = case sprite of
+  Player basic -> displayPlayer dims basic
+  Platform basic -> displayPlatform dims basic
+  Sky basic -> displaySky dims
+
+displayPlayer : (Int, Int) -> BasicSprite -> List Form
+displayPlayer (w',h') mario =
   let (w,h) = (toFloat w', toFloat h')
 
       verb = if | mario.y  >  0 -> "jump"
@@ -106,18 +129,27 @@ displayOne (w',h') mario =
       marioImage = image 35 35 src
 
       base = 50
-  in
-          [ rect w h
-              |> filled (rgb 174 238 238)
-          , rect w 50
-              |> filled (rgb 74 167 43)
-              |> move (0, 24 - h/2)
-          , marioImage
-              |> toForm
-              |> Debug.trace "mario"
-              |> move (mario.x, mario.y+mario.h/2-h/2+base)
-          ]
+  in [marioImage
+        |> toForm
+        |> Debug.trace "mario"
+        |> move (mario.x, mario.y+mario.h/2-h/2+base) ]
 
+displayPlatform : (Int, Int) -> BasicSprite -> List Form
+displayPlatform (w',h') pl =
+  let (w,h) = (toFloat w', toFloat h')
+      pw = min w pl.w
+      ph = min h pl.h
+      base = 50
+  in
+          [ rect pw ph
+              |> filled (rgb 74 167 43)
+              |> move (pl.x, pl.y - ph/2 + base - h/2) ]
+
+displaySky : (Int, Int) -> List Form
+displaySky (w',h') =
+  let (w,h) = (toFloat w', toFloat h')
+  in
+          [ rect w h |> filled (rgb 174 238 238) ]          
 
 -- SIGNALS
 
