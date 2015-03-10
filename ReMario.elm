@@ -3,7 +3,7 @@ import Window
 import Debug
 import Graphics.Element (..)
 import Graphics.Collage (..)
-import Color (rgb)
+import Color (..)
 import Time (fps)
 import Signal
 import List (..)
@@ -32,6 +32,15 @@ start_state = [
     , y = 0 
     , w = 16
     , h = 26
+    , vx = 0
+    , vy = 0
+    , dir = Right
+    },
+    -- the floor
+    { x = -999
+    , y = 0 
+    , w = 2*999
+    , h = 50
     , vx = 0
     , vy = 0
     , dir = Right
@@ -78,8 +87,11 @@ walk keys mario =
 
 display : (Int, Int) -> World -> Element
 display (w',h') world =
-  let mario = head world
-      (w,h) = (toFloat w', toFloat h')
+  collage w' h' (concatMap (displayOne (w',h')) (reverse world))
+
+displayOne : (Int, Int) -> Sprite -> List Form
+displayOne (w',h') mario =
+  let (w,h) = (toFloat w', toFloat h')
 
       verb = if | mario.y  >  0 -> "jump"
                 | mario.vx /= 0 -> "walk"
@@ -95,7 +107,6 @@ display (w',h') world =
 
       base = 50
   in
-      collage w' h'
           [ rect w h
               |> filled (rgb 174 238 238)
           , rect w 50
