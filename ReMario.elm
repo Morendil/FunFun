@@ -67,27 +67,26 @@ start_state = [
 
 step : (Float, Keys) -> World -> World
 step move world =
-  map (stepOne move) world
+  map (stepOne move world) world
 
-stepOne : (Float, Keys) -> Sprite -> Sprite
-stepOne dims sprite = case sprite of
-  Player sprite' -> Player (stepPlayer dims sprite')
+stepOne : (Float, Keys) -> World -> Sprite -> Sprite
+stepOne dims world sprite = case sprite of
+  Player sprite' -> Player (stepPlayer dims world sprite')
   _ -> sprite
 
-stepPlayer : (Float, Keys) -> BasicSprite -> BasicSprite
-stepPlayer (dt, keys) mario =
+stepPlayer : (Float, Keys) -> World -> BasicSprite -> BasicSprite
+stepPlayer (dt, keys) world mario =
     mario
         |> jump keys
         |> walk keys
-        |> physics dt
-        |> Debug.watch "mario"
+        |> physics dt world
 
 jump : Keys -> BasicSprite -> BasicSprite
 jump keys mario =
     if keys.y > 0 && mario.vy == 0 then { mario | vy <- 6.0 } else mario
 
-physics : Float -> BasicSprite -> BasicSprite
-physics dt mario =
+physics : Float -> World -> BasicSprite -> BasicSprite
+physics dt world mario =
     { mario |
         x <- mario.x + dt * mario.vx,
         y <- max 0 (mario.y + dt * mario.vy),
