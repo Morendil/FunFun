@@ -35,11 +35,25 @@ type alias Terrain =
     , h : Float
     }
 
--- still something not quite right about these
-right t = t.x + t.w
-top t = t.y + t.h
-left = .x
-bottom = .y
+right : Tile -> Float
+right t = case t of
+  Moving f -> f.x+f.w/2
+  Static p -> p.x+p.w
+
+left : Tile -> Float
+left t = case t of
+  Moving f -> f.x-f.w/2
+  Static p -> p.x
+
+bottom : Tile -> Float
+bottom t = case t of
+  Moving f -> f.y
+  Static p -> p.y
+
+top : Tile -> Float
+top t = case t of
+  Moving f -> f.y+f.h
+  Static p -> p.y+p.h
 
 type Direction = Left | Right
 
@@ -75,6 +89,19 @@ iterate : (a -> a) -> Int -> a -> a
 iterate f n =
   foldr (<<) identity (repeat n f)
 
+-- mapAllBut is a map with the list itself, without the element mapped
+-- we don't want self-collisions
+mapAllBut : (List a -> a -> a) -> List a -> List a
+mapAllBut f l =
+  map2 f (dropEach l) l
+
+dropEach : List a -> List (List a)
+dropEach l =
+  case l of
+    [] -> []
+    x :: [] -> [[]]
+    x :: xs -> append [xs] (map (append [x]) (dropEach xs))
+
 -- UPDATE
 
 type Update = Spawn Bool | Move (Float, Keys)
@@ -82,8 +109,8 @@ type Update = Spawn Bool | Move (Float, Keys)
 updateWorld : Update -> World -> World
 updateWorld u world =
   case u of 
-    Spawn true -> (Active mario) :: (append (map cycle (tail world)) [Sleeping mario []])
-    Move move -> map (update move) world
+    Spawn true -> (head world) :: (append (map cycle (tail world)) [Sleeping mario []])
+    Move move -> mapAllBut (update move) world
     _ -> world
 
 cycle : Character -> Character
@@ -92,20 +119,20 @@ cycle x = case x of
             Ghost m old sav -> Ghost mario sav sav
             _ -> x
 
-update : (Float, Keys) -> Character -> Character
-update (dt, keys) mario' =
+update : (Float, Keys) -> World -> Character -> Character
+update (dt, keys) world mario' =
     case mario' of 
-      Active m -> Active (updateActive (dt,keys) m)      
+      Active m -> Active (updateActive (dt,keys) m world)      
       Sleeping m x -> Sleeping m (append x [(dt,keys)])
-      Ghost m [] sav -> Ghost (updateActive (dt,{x=0,y=0}) m) [] sav
-      Ghost m x sav -> Ghost (updateActive (head x) m) (tail x) sav
+      Ghost m [] sav -> Ghost (updateActive (dt,{x=0,y=0}) m world) [] sav
+      Ghost m x sav -> Ghost (updateActive (head x) m world) (tail x) sav
 
-updateActive (dt,keys) mario =
+updateActive (dt,keys) mario world =
     let n = 6 in
     mario
         |> jump keys
         |> walk keys
-        |> iterate (physics (dt/n)) n        
+        |> iterate (physics world (dt/n)) n        
         |> Debug.watch "mario"
 
 jump : Keys -> Figure -> Figure
@@ -114,35 +141,43 @@ jump keys mario =
       then { mario | vy <- 4.0 }
       else mario
 
-physics dt mario =
-  let newx = mario.x + dt * mario.vx
+figure : Character -> Tile
+figure c = case c of
+  Active f -> Moving f
+  Sleeping f _ -> Moving {f|x<-8888}
+  Ghost f _ _ -> Moving f
+
+physics : World -> Float -> Figure -> Figure
+physics world dt mario =
+  let candidates = append (map Static decor) [] -- should be :(map figure world)
+      newx = mario.x + dt * mario.vx
       newy = mario.y + dt * mario.vy
       xymario = { mario | x <- newx, y <- newy }
       y_mario = { mario | y <- newy - 0.01} -- test whether Mario is supported
       x_mario = { mario | x <- newx }
-      support = Debug.watch "floor" <| filter (collidingWith y_mario) decor
-      newv = if any (collidingWith y_mario) decor then 0 else mario.vy - dt/8
-      newmario = firstNonColliding [xymario, y_mario, x_mario, mario]
+      newv = if any (collidingWith (Moving y_mario)) candidates then 0 else mario.vy - dt/8
+      next = nonColliding candidates [xymario, y_mario, x_mario]
+      newmario = head <| append next [mario]
   in
      {newmario | vy <- newv}
 
 -- maybe not ideal, Elm being non-lazy
-firstNonColliding : List Figure -> Figure
-firstNonColliding list =
-  head <| filter (\ mario -> not (colliding mario)) list
+nonColliding : List Tile -> List Figure -> List Figure
+nonColliding others list =
+  filter (\ mario -> not (colliding others mario)) list
 
-colliding mario =
-  any (collidingWith mario) decor
+colliding others mario =
+  any (collidingWith (Moving mario)) others
 
-collidingWith : Figure -> Terrain -> Bool
+collidingWith : Tile -> Tile -> Bool
 collidingWith mario pl =
-  sameLevelAs mario pl && sameColumnAs mario pl 
+  sameLevelAs mario pl && sameColumnAs mario pl
 
-sameColumnAs : Figure -> Terrain -> Bool
+sameColumnAs : Tile -> Tile -> Bool
 sameColumnAs mario pl =
-  (left pl, right pl) `intersects` (mario.x - mario.w/2, mario.x + mario.w/2)
+  (left pl, right pl) `intersects` (left mario, right mario)
 
-sameLevelAs : Figure -> Terrain -> Bool
+sameLevelAs : Tile -> Tile -> Bool
 sameLevelAs mario pl =
   (bottom pl, top pl) `intersects` (bottom mario, top mario)
 
