@@ -36,7 +36,6 @@ mario =
 step : (Float, Keys) -> Model -> Model
 step (dt, keys) mario =
     mario
-        |> gravity dt
         |> jump keys
         |> walk keys
         |> physics dt
@@ -46,17 +45,12 @@ jump : Keys -> Model -> Model
 jump keys mario =
     if keys.y > 0 && mario.vy == 0 then { mario | vy <- 6.0 } else mario
 
-gravity : Float -> Model -> Model
-gravity dt mario =
-    { mario |
-        vy <- if mario.y > 0 then mario.vy - dt/4 else 0
-    }
-
 physics : Float -> Model -> Model
 physics dt mario =
     { mario |
         x <- mario.x + dt * mario.vx,
-        y <- max 0 (mario.y + dt * mario.vy)
+        y <- max 0 (mario.y + dt * mario.vy),
+        vy <- if mario.y > 0 then mario.vy - dt/4 else 0
     }
 
 walk : Keys -> Model -> Model
