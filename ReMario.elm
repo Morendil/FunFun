@@ -6,10 +6,13 @@ import Graphics.Collage (..)
 import Color (rgb)
 import Time (fps)
 import Signal
+import List (..)
 
 -- MODEL
 
-type alias Model =
+type alias World = List Sprite
+
+type alias Sprite =
     { x   : Float
     , y   : Float
     , w   : Float
@@ -23,8 +26,8 @@ type Direction = Left | Right
 
 type alias Keys = { x:Int, y:Int }
 
-mario : Model
-mario =
+mario_start : Sprite
+mario_start =
     { x = 0
     , y = 0 
     , w = 16
@@ -37,19 +40,23 @@ mario =
 
 -- UPDATE
 
-step : (Float, Keys) -> Model -> Model
-step (dt, keys) mario =
+step : (Float, Keys) -> World -> World
+step move world =
+  map (stepOne move) world
+
+stepOne : (Float, Keys) -> Sprite -> Sprite
+stepOne (dt, keys) mario =
     mario
         |> jump keys
         |> walk keys
         |> physics dt
         |> Debug.watch "mario"
 
-jump : Keys -> Model -> Model
+jump : Keys -> Sprite -> Sprite
 jump keys mario =
     if keys.y > 0 && mario.vy == 0 then { mario | vy <- 6.0 } else mario
 
-physics : Float -> Model -> Model
+physics : Float -> Sprite -> Sprite
 physics dt mario =
     { mario |
         x <- mario.x + dt * mario.vx,
@@ -57,7 +64,7 @@ physics dt mario =
         vy <- if mario.y > 0 then mario.vy - dt/4 else 0
     }
 
-walk : Keys -> Model -> Model
+walk : Keys -> Sprite -> Sprite
 walk keys mario =
     { mario |
         vx <- toFloat keys.x,
@@ -69,9 +76,10 @@ walk keys mario =
 
 -- DISPLAY
 
-display : (Int, Int) -> Model -> Element
-display (w',h') mario =
-  let (w,h) = (toFloat w', toFloat h')
+display : (Int, Int) -> World -> Element
+display (w',h') world =
+  let mario = head world
+      (w,h) = (toFloat w', toFloat h')
 
       verb = if | mario.y  >  0 -> "jump"
                 | mario.vx /= 0 -> "walk"
@@ -103,7 +111,10 @@ display (w',h') mario =
 -- SIGNALS
 
 main : Signal Element
-main = Signal.map2 display Window.dimensions (Signal.foldp step mario input)
+main =
+  let states = Signal.foldp step [mario_start] input
+  in
+    Signal.map2 display Window.dimensions states
 
 input : Signal (Float, Keys)
 input =
