@@ -12,7 +12,7 @@ import List (..)
 
 type alias World = List Sprite
 
-type Sprite = Sky BasicSprite | Platform BasicSprite | Player BasicSprite
+type Sprite = Sky | Platform PlatformSprite | Player BasicSprite
 
 type alias BasicSprite =
     { x   : Float
@@ -22,6 +22,14 @@ type alias BasicSprite =
     , vx  : Float
     , vy  : Float
     , dir : Direction
+    }
+
+type alias PlatformSprite =
+    { x   : Float
+    , y   : Float
+    , w   : Float
+    , h   : Float
+    , c   : Color
     }
 
 type Direction = Left | Right
@@ -38,24 +46,21 @@ start_state = [
     , vy = 0
     , dir = Right
     },
+    Platform { x = 40
+    , y = 20 
+    , w = 20
+    , h = 20
+    , c = red
+    }, 
     -- the floor
     Platform { x = 0
     , y = 0 
     , w = 9999
     , h = 50
-    , vx = 0
-    , vy = 0
-    , dir = Right
+    , c = rgb 74 167 43
     }, 
     -- the sky
-    Sky { x = 0
-    , y = 0 
-    , w = 9999
-    , h = 9999
-    , vx = 0
-    , vy = 0
-    , dir = Right
-    }]
+    Sky ]
 
 
 -- UPDATE
@@ -67,8 +72,7 @@ step move world =
 stepOne : (Float, Keys) -> Sprite -> Sprite
 stepOne dims sprite = case sprite of
   Player sprite' -> Player (stepPlayer dims sprite')
-  Platform sprite' -> sprite
-  Sky sprite' -> sprite
+  _ -> sprite
 
 stepPlayer : (Float, Keys) -> BasicSprite -> BasicSprite
 stepPlayer (dt, keys) mario =
@@ -110,7 +114,7 @@ displayOne : (Int, Int) -> Sprite -> List Form
 displayOne dims sprite = case sprite of
   Player basic -> displayPlayer dims basic
   Platform basic -> displayPlatform dims basic
-  Sky basic -> displaySky dims
+  Sky -> displaySky dims
 
 displayPlayer : (Int, Int) -> BasicSprite -> List Form
 displayPlayer (w',h') mario =
@@ -134,7 +138,7 @@ displayPlayer (w',h') mario =
         |> Debug.trace "mario"
         |> move (mario.x, mario.y+mario.h/2-h/2+base) ]
 
-displayPlatform : (Int, Int) -> BasicSprite -> List Form
+displayPlatform : (Int, Int) -> PlatformSprite -> List Form
 displayPlatform (w',h') pl =
   let (w,h) = (toFloat w', toFloat h')
       pw = min w pl.w
@@ -142,7 +146,7 @@ displayPlatform (w',h') pl =
       base = 50
   in
           [ rect pw ph
-              |> filled (rgb 74 167 43)
+              |> filled pl.c
               |> move (pl.x, pl.y - ph/2 + base - h/2) ]
 
 displaySky : (Int, Int) -> List Form
