@@ -8,6 +8,16 @@ import Time (fps)
 import Signal
 import List (..)
 
+-- GENERIC
+
+between : number -> number -> number -> Bool
+between min max x =
+  x >= min && x < max
+
+iterate : (a -> a) -> Int -> a -> a
+iterate f n =
+  foldr (<<) identity (repeat n f)
+
 -- MODEL
 
 type alias World = List Sprite
@@ -52,6 +62,12 @@ start_state = [
     , h = 20
     , c = red
     }, 
+    Platform { x = 60
+    , y = 30 
+    , w = 20
+    , h = 30
+    , c = red
+    }, 
     -- the floor
     Platform { x = 0
     , y = 0 
@@ -67,7 +83,9 @@ start_state = [
 
 step : (Float, Keys) -> World -> World
 step move world =
-  map (stepOne move world) world
+  let step = stepOne move
+  in
+    map (stepOne move world) world
 
 stepOne : (Float, Keys) -> World -> Sprite -> Sprite
 stepOne dims world sprite = case sprite of
@@ -76,21 +94,33 @@ stepOne dims world sprite = case sprite of
 
 stepPlayer : (Float, Keys) -> World -> BasicSprite -> BasicSprite
 stepPlayer (dt, keys) world mario =
+    let n = 6 in
     mario
         |> jump keys
         |> walk keys
-        |> physics dt world
+        |> iterate (physics (dt/n) world) n
 
 jump : Keys -> BasicSprite -> BasicSprite
 jump keys mario =
-    if keys.y > 0 && mario.vy == 0 then { mario | vy <- 6.0 } else mario
+    if keys.y > 0 && mario.vy == 0 then { mario | vy <- 4.0 } else mario
+
+supports mario p =
+  case p of
+    Platform pl -> between (pl.y-pl.h) pl.y mario.y && between (pl.x-pl.w/2) (pl.x+pl.w/2) mario.x
+    _ -> False
 
 physics : Float -> World -> BasicSprite -> BasicSprite
 physics dt world mario =
+    let newy = mario.y + dt * mario.vy - 0.01 -- fudge factor to "test" our feet
+        support = filter (supports {mario | y <- newy}) world
+        newv = if (isEmpty support) then mario.vy - dt/8 else 0
+        f = Debug.watch "floor" support
+    in
+    Debug.watch "mario" <| 
     { mario |
         x <- mario.x + dt * mario.vx,
-        y <- max 0 (mario.y + dt * mario.vy),
-        vy <- if mario.y > 0 then mario.vy - dt/4 else 0
+        y <- if (isEmpty support) then newy else mario.y,
+        vy <- newv
     }
 
 walk : Keys -> BasicSprite -> BasicSprite
@@ -119,7 +149,7 @@ displayPlayer : (Int, Int) -> BasicSprite -> List Form
 displayPlayer (w',h') mario =
   let (w,h) = (toFloat w', toFloat h')
 
-      verb = if | mario.y  >  0 -> "jump"
+      verb = if | (abs mario.vy) > 0 -> "jump"
                 | mario.vx /= 0 -> "walk"
                 | otherwise     -> "stand"
 
@@ -135,7 +165,7 @@ displayPlayer (w',h') mario =
   in [marioImage
         |> toForm
         |> Debug.trace "mario"
-        |> move (mario.x, mario.y+mario.h/2-h/2+base) ]
+        |> move (mario.x, mario.y + mario.h/2 + base - h/2) ]
 
 displayPlatform : (Int, Int) -> PlatformSprite -> List Form
 displayPlatform (w',h') pl =
