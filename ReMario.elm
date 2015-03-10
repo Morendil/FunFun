@@ -26,8 +26,8 @@ type Direction = Left | Right
 
 type alias Keys = { x:Int, y:Int }
 
-mario_start : Sprite
-mario_start =
+start_state : World
+start_state = [
     { x = 0
     , y = 0 
     , w = 16
@@ -35,7 +35,7 @@ mario_start =
     , vx = 0
     , vy = 0
     , dir = Right
-    }
+    }]
 
 
 -- UPDATE
@@ -112,7 +112,7 @@ display (w',h') world =
 
 main : Signal Element
 main =
-  let states = Signal.foldp step [mario_start] input
+  let states = Signal.foldp step start_state input
   in
     Signal.map2 display Window.dimensions states
 
