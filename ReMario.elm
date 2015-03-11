@@ -23,6 +23,17 @@ iterate : (a -> a) -> Int -> a -> a
 iterate f n =
   foldr (<<) identity (repeat n f)
 
+mapAllBut : (List a -> a -> a) -> List a -> List a
+mapAllBut f l =
+  map2 f (dropEach l) l
+
+dropEach : List a -> List (List a)
+dropEach l =
+  case l of
+    [] -> []
+    x :: [] -> [[]]
+    x :: xs -> append [xs] (map (append [x]) (dropEach xs))
+
 -- MODEL
 
 type alias World = List Sprite
@@ -58,6 +69,7 @@ start_state : World
 start_state = [
     Player start_mario [],
     Platform { x = 40 , y = 20 , w = 20 , h = 20 , c = red },
+    Platform { x = -80 , y = 80 , w = 20 , h = 20 , c = red },
     Platform { x = 60 , y = 30 , w = 20 , h = 4 , c = blue },
     -- the floor
     Platform { x = 0 , y = 0 , w = 9999 , h = 50 , c = rgb 74 167 43 },
@@ -78,7 +90,7 @@ step u world =
   in
   case u of
     Spawn True -> reset (head world) :: ghost :: map reset (tail world)
-    Move move -> map (stepOne move world) world
+    Move move -> mapAllBut (stepOne move) world
     _ -> world
 
 stepOne : (Float, Keys) -> World -> Sprite -> Sprite
@@ -105,6 +117,12 @@ blocks mario p =
       mrgt = mario.x+mario.w/2
       mtop = mario.y+mario.h
       mbot = mario.y
+      collides g =
+        let glft = g.x-g.w/2
+            grgt = g.x+g.w/2
+            gtop = g.y+g.h
+        in
+          intersects (glft,grgt) (mlft,mrgt) && intersects (gtop-2,gtop) (mbot,mbot+2) && mario.vy <= 0        
   in case p of
     Platform pl ->
       let plft = pl.x-pl.w/2
@@ -114,6 +132,8 @@ blocks mario p =
       in
         if pl.c == blue then intersects (plft,prgt) (mlft,mrgt) && intersects (ptop-2,ptop) (mbot,mbot+2) && mario.vy <= 0
                         else intersects (plft,prgt) (mlft,mrgt) && intersects (pbot,ptop) (mbot,mtop)
+    Ghost g _ _ -> collides g
+    Player p _ -> collides p
     _ -> False
 
 physics : Float -> World -> BasicSprite -> BasicSprite
