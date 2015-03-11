@@ -52,36 +52,12 @@ type alias Keys = { x:Int, y:Int }
 
 start_state : World
 start_state = [
-    Player { x = 0
-    , y = 0 
-    , w = 16
-    , h = 26
-    , vx = 0
-    , vy = 0
-    , dir = Right
-    },
-    Platform { x = 40
-    , y = 20 
-    , w = 20
-    , h = 20
-    , c = red
-    }, 
-    Platform { x = 60
-    , y = 30 
-    , w = 20
-    , h = 4
-    , c = blue
-    }, 
+    Player { x = 0 , y = 0 , w = 16 , h = 26 , vx = 0 , vy = 0 , dir = Right },
+    Platform { x = 40 , y = 20 , w = 20 , h = 20 , c = red },
+    Platform { x = 60 , y = 30 , w = 20 , h = 4 , c = blue },
     -- the floor
-    Platform { x = 0
-    , y = 0 
-    , w = 9999
-    , h = 50
-    , c = rgb 74 167 43
-    }, 
-    -- the sky
+    Platform { x = 0 , y = 0 , w = 9999 , h = 50 , c = rgb 74 167 43 },
     Sky ]
-
 
 -- UPDATE
 
