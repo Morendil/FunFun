@@ -69,8 +69,8 @@ start_state = [
     Platform { x = 60
     , y = 30 
     , w = 20
-    , h = 30
-    , c = red
+    , h = 4
+    , c = blue
     }, 
     -- the floor
     Platform { x = 0
@@ -109,23 +109,25 @@ jump keys mario =
     if keys.y > 0 && mario.vy == 0 then { mario | vy <- 4.0 } else mario
 
 blocks mario p =
-  case p of
+  let mlft = mario.x-mario.w/2
+      mrgt = mario.x+mario.w/2
+      mtop = mario.y+mario.h
+      mbot = mario.y
+  in case p of
     Platform pl ->
       let plft = pl.x-pl.w/2
           prgt = pl.x+pl.w/2
           ptop = pl.y
           pbot = pl.y-pl.h
-          mlft = mario.x-mario.w/2
-          mrgt = mario.x+mario.w/2
-          mtop = mario.y+mario.h
-          mbot = mario.y
-      in intersects (plft,prgt) (mlft,mrgt) && intersects (pbot,ptop) (mbot,mtop) 
+      in
+        if pl.c == blue then intersects (plft,prgt) (mlft,mrgt) && intersects (ptop-2,ptop) (mbot,mbot+2) && mario.vy <= 0
+                        else intersects (plft,prgt) (mlft,mrgt) && intersects (pbot,ptop) (mbot,mtop)
     _ -> False
 
 physics : Float -> World -> BasicSprite -> BasicSprite
 physics dt world mario =
     let newx = mario.x + dt * mario.vx
-        newy = mario.y + dt * mario.vy - 0.01 -- fudge factor to "test" our feet
+        newy = mario.y + dt * (mario.vy - 0.01) -- fudge factor to "test" our feet
         support = filter (blocks {mario | y <- newy}) world
         blockers = filter (blocks {mario | x <- newx}) world
         newv = if (isEmpty support) then mario.vy - dt/8 else 0
