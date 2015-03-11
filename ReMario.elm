@@ -4,8 +4,9 @@ import Debug
 import Graphics.Element (..)
 import Graphics.Collage (..)
 import Color (..)
-import Time (fps)
+import Time (fps,second)
 import Signal
+import Signal.Time
 import List (..)
 
 -- GENERIC
@@ -50,9 +51,11 @@ type Direction = Left | Right
 
 type alias Keys = { x:Int, y:Int }
 
+start_mario = Player { x = 0 , y = 0 , w = 16 , h = 26 , vx = 0 , vy = 0 , dir = Right }
+
 start_state : World
 start_state = [
-    Player { x = 0 , y = 0 , w = 16 , h = 26 , vx = 0 , vy = 0 , dir = Right },
+    start_mario,
     Platform { x = 40 , y = 20 , w = 20 , h = 20 , c = red },
     Platform { x = 60 , y = 30 , w = 20 , h = 4 , c = blue },
     -- the floor
@@ -61,11 +64,14 @@ start_state = [
 
 -- UPDATE
 
-step : (Float, Keys) -> World -> World
-step move world =
-  let step = stepOne move
-  in
-    map (stepOne move world) world
+type Update = Spawn Bool | Move (Float, Keys)
+
+step : Update -> World -> World
+step u world =
+  case u of
+    Spawn True -> start_mario :: (tail world)
+    Move move -> map (stepOne move world) world
+    _ -> world
 
 stepOne : (Float, Keys) -> World -> Sprite -> Sprite
 stepOne dims world sprite = case sprite of
@@ -179,9 +185,11 @@ main =
   in
     Signal.map2 display Window.dimensions states
 
-input : Signal (Float, Keys)
+input : Signal Update
 input =
   let delta = Signal.map (\t -> t/20) (fps 30)
       deltaArrows = Signal.map2 (,) delta Keyboard.arrows
+      moves = Signal.map Move (Signal.sampleOn delta deltaArrows)
+      spawns = Signal.map Spawn (Signal.Time.dropWithin second Keyboard.space)
   in
-      Signal.sampleOn delta deltaArrows
+      Signal.merge moves spawns
