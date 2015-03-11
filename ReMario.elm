@@ -146,24 +146,22 @@ walk keys mario =
                   | otherwise  -> mario.dir
     }
 
-
 -- DISPLAY
 
 display : (Int, Int) -> World -> Element
 display (w',h') world =
-  collage w' h' (concatMap (displayOne (w',h')) (reverse world))
+  let (w,h) = (toFloat w', toFloat h')
+  in collage w' h' (concatMap (displayOne (w,h)) (reverse world))
 
-displayOne : (Int, Int) -> Sprite -> List Form
+displayOne : (Float, Float) -> Sprite -> List Form
 displayOne dims sprite = case sprite of
   Player basic -> displayPlayer dims basic
   Platform basic -> displayPlatform dims basic
   Sky -> displaySky dims
 
-displayPlayer : (Int, Int) -> BasicSprite -> List Form
-displayPlayer (w',h') mario =
-  let (w,h) = (toFloat w', toFloat h')
-
-      verb = if | (abs mario.vy) > 0 -> "jump"
+displayPlayer : (Float, Float) -> BasicSprite -> List Form
+displayPlayer (w,h) mario =
+  let verb = if | (abs mario.vy) > 0 -> "jump"
                 | mario.vx /= 0 -> "walk"
                 | otherwise     -> "stand"
 
@@ -181,10 +179,9 @@ displayPlayer (w',h') mario =
         |> Debug.trace "mario"
         |> move (mario.x, mario.y + mario.h/2 + base - h/2) ]
 
-displayPlatform : (Int, Int) -> PlatformSprite -> List Form
-displayPlatform (w',h') pl =
-  let (w,h) = (toFloat w', toFloat h')
-      pw = min w pl.w
+displayPlatform : (Float, Float) -> PlatformSprite -> List Form
+displayPlatform (w,h) pl =
+  let pw = min w pl.w
       ph = min h pl.h
       base = 50
   in
@@ -192,11 +189,9 @@ displayPlatform (w',h') pl =
               |> filled pl.c
               |> move (pl.x, pl.y - ph/2 + base - h/2) ]
 
-displaySky : (Int, Int) -> List Form
-displaySky (w',h') =
-  let (w,h) = (toFloat w', toFloat h')
-  in
-          [ rect w h |> filled (rgb 174 238 238) ]          
+displaySky : (Float, Float) -> List Form
+displaySky (w,h) =
+  [ rect w h |> filled (rgb 174 238 238) ]          
 
 -- SIGNALS
 
