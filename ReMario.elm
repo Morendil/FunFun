@@ -38,8 +38,9 @@ dropEach l =
 
 type alias World = List Sprite
 type alias History = List (Float,Keys)
+type alias Behavior = (Float, Keys) -> World -> PlatformSprite -> PlatformSprite
 
-type Sprite = Sky | Platform PlatformSprite | Player BasicSprite History | Ghost BasicSprite History History
+type Sprite = Sky | Platform PlatformSprite Behavior | Player BasicSprite History | Ghost BasicSprite History History
 
 type alias BasicSprite =
     { x   : Float
@@ -56,6 +57,7 @@ type alias PlatformSprite =
     , y   : Float
     , w   : Float
     , h   : Float
+    , t   : Float
     , c   : Color
     }
 
@@ -68,11 +70,11 @@ start_mario = { x = 0 , y = 0 , w = 16 , h = 26 , vx = 0 , vy = 0 , dir = Right 
 start_state : World
 start_state = [
     Player start_mario [],
-    Platform { x = 40 , y = 20 , w = 20 , h = 20 , c = red },
-    Platform { x = -80 , y = 80 , w = 20 , h = 20 , c = red },
-    Platform { x = 60 , y = 30 , w = 20 , h = 4 , c = blue },
+    Platform { x = 40 , y = 20 , w = 20 , h = 20 , c = red , t = 0} nothing,
+    Platform { x = -80 , y = 80 , w = 20 , h = 20 , c = red , t = 0} nothing,
+    Platform { x = 60 , y = 30 , w = 20 , h = 4 , c = blue , t = 0} (sway { x = 60 , y = 30 , w = 20 , h = 4 , c = blue , t = 0}),
     -- the floor
-    Platform { x = 0 , y = 0 , w = 9999 , h = 50 , c = rgb 74 167 43 },
+    Platform { x = 0 , y = 0 , w = 9999 , h = 50 , c = rgb 74 167 43 , t = 0} nothing,
     Sky ]
 
 -- UPDATE
@@ -93,11 +95,15 @@ step u world =
     Move move -> mapAllBut (stepOne move) world
     _ -> world
 
+nothing _ _ sprite = sprite
+sway pl (dt,_) world sprite = {sprite | t <- sprite.t+dt, x <- pl.x+10*(sin(sprite.t/10)-0.5)}
+
 stepOne : (Float, Keys) -> World -> Sprite -> Sprite
 stepOne move world sprite = case sprite of
   Player sprite' h -> Player (stepPlayer move world sprite') (move :: h)
   Ghost sprite' [] copy -> let (dt,keys) = move in Ghost (stepPlayer (dt,{x=0,y=0}) world sprite') [] copy
   Ghost sprite' h copy -> Ghost (stepPlayer (head h) world sprite') (tail h) copy
+  Platform sprite behavior -> Platform (behavior move world sprite) behavior
   _ -> sprite
 
 stepPlayer : (Float, Keys) -> World -> BasicSprite -> BasicSprite
@@ -124,7 +130,7 @@ blocks mario p =
         in
           intersects (glft,grgt) (mlft,mrgt) && intersects (gtop-2,gtop) (mbot,mbot+2) && mario.vy <= 0        
   in case p of
-    Platform pl ->
+    Platform pl _ ->
       let plft = pl.x-pl.w/2
           prgt = pl.x+pl.w/2
           ptop = pl.y
@@ -171,7 +177,7 @@ displayOne : (Float, Float) -> Sprite -> Form
 displayOne dims sprite = case sprite of
   Player shape _ -> Debug.trace "mario" <| displayPlayer dims "mario" shape
   Ghost shape _ _ -> displayPlayer dims "ghost" shape
-  Platform shape -> displayPlatform dims shape
+  Platform shape _ -> displayPlatform dims shape
   Sky -> displaySky dims
 
 displayPlayer : (Float, Float) -> String -> BasicSprite -> Form
