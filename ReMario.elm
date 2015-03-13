@@ -41,25 +41,21 @@ type alias Behavior = (Float, Keys) -> World -> PlatformSprite -> PlatformSprite
 
 type Sprite = Sky | Platform PlatformSprite Behavior | Player BasicSprite History | Ghost BasicSprite History History
 
-type alias BasicSprite =
-    { x   : Float
+type alias Common a =
+    { a |
+      x   : Float
     , y   : Float
     , w   : Float
     , h   : Float
     , vx  : Float
     , vy  : Float
-    , dir : Direction
     }
 
+type alias BasicSprite =
+    Common { dir : Direction }
+
 type alias PlatformSprite =
-    { x   : Float
-    , y   : Float
-    , w   : Float
-    , h   : Float
-    , t   : Float
-    , vx   : Float
-    , c   : Color
-    }
+    Common { t : Float , c : Color }
 
 type Direction = Left | Right
 
@@ -70,11 +66,11 @@ start_mario = { x = 0 , y = 0 , w = 16 , h = 26 , vx = 0 , vy = 0 , dir = Right 
 start_state : World
 start_state = [
     Player start_mario [],
-    Platform { x = 40 , y = 20 , w = 20 , h = 20 , c = red , t = 0, vx = 0} nothing,
-    Platform { x = -80 , y = 80 , w = 20 , h = 20 , c = red , t = 0, vx = 0} nothing,
-    Platform { x = -60 , y = 30 , w = 20 , h = 4 , c = blue , t = 0, vx = 0} sway,
+    Platform { x = 40 , y = 20 , w = 20 , h = 20 , c = red , t = 0, vx = 0, vy = 0} nothing,
+    Platform { x = -80 , y = 80 , w = 20 , h = 20 , c = red , t = 0, vx = 0, vy = 0} nothing,
+    Platform { x = -60 , y = 30 , w = 20 , h = 4 , c = blue , t = 0, vx = 0, vy = 0} sway,
     -- the floor
-    Platform { x = 0 , y = 0 , w = 9999 , h = 50 , c = rgb 74 167 43 , t = 0, vx = 0} nothing,
+    Platform { x = 0 , y = 0 , w = 9999 , h = 50 , c = rgb 74 167 43 , t = 0, vx = 0, vy = 0} nothing,
     Sky ]
 
 -- UPDATE
