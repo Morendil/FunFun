@@ -11,7 +11,6 @@ import List (..)
 
 -- GENERIC
 
-between : number -> number -> number -> Bool
 between min max x =
   x >= min && x < max
 
