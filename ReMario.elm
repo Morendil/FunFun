@@ -58,6 +58,7 @@ type alias PlatformSprite =
     , w   : Float
     , h   : Float
     , t   : Float
+    , vx   : Float
     , c   : Color
     }
 
@@ -70,11 +71,11 @@ start_mario = { x = 0 , y = 0 , w = 16 , h = 26 , vx = 0 , vy = 0 , dir = Right 
 start_state : World
 start_state = [
     Player start_mario [],
-    Platform { x = 40 , y = 20 , w = 20 , h = 20 , c = red , t = 0} nothing,
-    Platform { x = -80 , y = 80 , w = 20 , h = 20 , c = red , t = 0} nothing,
-    Platform { x = 60 , y = 30 , w = 20 , h = 4 , c = blue , t = 0} (sway { x = 60 , y = 30 , w = 20 , h = 4 , c = blue , t = 0}),
+    Platform { x = 40 , y = 20 , w = 20 , h = 20 , c = red , t = 0, vx = 0} nothing,
+    Platform { x = -80 , y = 80 , w = 20 , h = 20 , c = red , t = 0, vx = 0} nothing,
+    Platform { x = -60 , y = 30 , w = 20 , h = 4 , c = blue , t = 0, vx = 0} sway,
     -- the floor
-    Platform { x = 0 , y = 0 , w = 9999 , h = 50 , c = rgb 74 167 43 , t = 0} nothing,
+    Platform { x = 0 , y = 0 , w = 9999 , h = 50 , c = rgb 74 167 43 , t = 0, vx = 0} nothing,
     Sky ]
 
 -- UPDATE
@@ -96,7 +97,7 @@ step u world =
     _ -> world
 
 nothing _ _ sprite = sprite
-sway pl (dt,_) world sprite = {sprite | t <- sprite.t+dt, x <- pl.x+10*(sin(sprite.t/10)-0.5)}
+sway (dt,_) world sprite = {sprite | t <- sprite.t+dt, x <- sprite.x + dt * sprite.vx, vx <- sin(sprite.t/50)}
 
 stepOne : (Float, Keys) -> World -> Sprite -> Sprite
 stepOne move world sprite = case sprite of
@@ -147,14 +148,19 @@ physics dt world mario =
     let newx = mario.x + dt * mario.vx
         newy = mario.y + dt * (mario.vy - 0.01) -- fudge factor to "test" our feet
         support = filter (blocks {mario | y <- newy}) world
-        blockers = filter (blocks {mario | x <- newx}) world
-        newv = if (isEmpty support) then mario.vy - dt/8 else 0
+        newvy = if (isEmpty support) then mario.vy - dt/8 else 0
+        extrax = if (isEmpty support) || (mario.vx /= 0) then 0 else
+          case head support of
+            Player pl _ -> dt * pl.vx
+            Platform pl _ -> dt * pl.vx
+            _ -> 0
+        blockers = filter (blocks {mario | x <- newx + extrax}) world
     in
     Debug.watch "mario" <| 
     { mario |
-        x <- if (isEmpty blockers) then newx else mario.x,
+        x <- if (isEmpty blockers) then newx+extrax else mario.x,
         y <- if (isEmpty support) then newy else mario.y,
-        vy <- newv
+        vy <- newvy
     }
 
 walk : Keys -> BasicSprite -> BasicSprite
