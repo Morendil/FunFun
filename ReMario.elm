@@ -39,7 +39,7 @@ type alias World = List Sprite
 type alias History = List (Float,Keys)
 type alias Behavior = (Float, Keys) -> World -> PlatformSprite -> PlatformSprite
 
-type Sprite = Sky | Platform PlatformSprite Behavior | Player BasicSprite History | Ghost BasicSprite History History
+type Sprite = Sky | Platform PlatformSprite Behavior | Player BasicSprite History (List BasicSprite) | Ghost BasicSprite History History
 
 type alias Common a =
     { a |
@@ -65,7 +65,7 @@ start_mario = { x = 0 , y = 0 , w = 16 , h = 26 , vx = 0 , vy = 0 , dir = Right 
 
 start_state : World
 start_state = [
-    Player start_mario [],
+    Player start_mario [] [],
     Platform { x = 40 , y = 20 , w = 20 , h = 20 , c = red , t = 0, vx = 0, vy = 0} nothing,
     Platform { x = -80 , y = 80 , w = 20 , h = 20 , c = red , t = 0, vx = 0, vy = 0} nothing,
     Platform { x = -60 , y = 30 , w = 20 , h = 4 , c = blue , t = 0, vx = 0, vy = 0} sway,
@@ -75,28 +75,37 @@ start_state = [
 
 -- UPDATE
 
-type Update = Spawn Bool | Move (Float, Keys)
+type Update = Rewind Bool | Spawn Bool | Move (Float, Keys)
 
 step : Update -> World -> World
 step u world =
   let ghost = case (head world) of
-        Player _ history -> Ghost start_mario (reverse history) (reverse history)
+        Player _ history _ -> Ghost start_mario (reverse history) (reverse history)
       reset one = case one of
-        Player _ _ -> Player start_mario []
+        Player _ _ _ -> Player start_mario [] []
         Ghost _ history copy -> Ghost start_mario copy copy
         _ -> one
   in
   case u of
     Spawn True -> reset (head world) :: ghost :: map reset (tail world)
+    Rewind True -> rewind (head world) :: tail world
     Move move -> mapAllBut (stepOne move) world
     _ -> world
+
+rewind item =
+  case item of
+    Player sprite _ [] -> item
+    Player sprite (h::hs) (x::xs) -> 
+      let l = Debug.watch "history" (length hs)
+      in Player (Debug.watch "<-" x) hs xs
+    _ -> item
 
 nothing _ _ sprite = sprite
 sway (dt,_) world sprite = {sprite | t <- sprite.t+dt, x <- sprite.x + dt * sprite.vx, vx <- sin(sprite.t/50)}
 
 stepOne : (Float, Keys) -> World -> Sprite -> Sprite
 stepOne move world sprite = case sprite of
-  Player sprite' h -> Player (stepPlayer move world sprite') (move :: h)
+  Player sprite' h past -> Player (stepPlayer move world sprite') (move :: h) (sprite' :: past)
   Ghost sprite' [] copy -> let (dt,keys) = move in Ghost (stepPlayer (dt,{x=0,y=0}) world sprite') [] copy
   Ghost sprite' h copy -> Ghost (stepPlayer (head h) world sprite') (tail h) copy
   Platform sprite behavior -> Platform (behavior move world sprite) behavior
@@ -135,7 +144,7 @@ blocks mario p =
         if pl.c == blue then intersects (plft,prgt) (mlft,mrgt) && intersects (ptop-2,ptop) (mbot,mbot+2) && mario.vy <= 0
                         else intersects (plft,prgt) (mlft,mrgt) && intersects (pbot,ptop) (mbot,mtop)
     Ghost g _ _ -> collides g
-    Player p _ -> collides p
+    Player p _ _ -> collides p
     _ -> False
 
 physics : Float -> World -> BasicSprite -> BasicSprite
@@ -146,12 +155,11 @@ physics dt world mario =
         newvy = if (isEmpty support) then mario.vy - dt/8 else 0
         extrax = if (isEmpty support) || (mario.vx /= 0) then 0 else
           case head support of
-            Player pl _ -> dt * pl.vx
+            Player pl _ _ -> dt * pl.vx
             Platform pl _ -> dt * pl.vx
             _ -> 0
         blockers = filter (blocks {mario | x <- newx + extrax}) world
-    in
-    Debug.watch "mario" <| 
+    in    
     { mario |
         x <- if (isEmpty blockers) then newx+extrax else mario.x,
         y <- if (isEmpty support) then newy else mario.y,
@@ -176,7 +184,7 @@ display (w',h') world =
 
 displayOne : (Float, Float) -> Sprite -> Form
 displayOne dims sprite = case sprite of
-  Player shape _ -> Debug.trace "mario" <| displayPlayer dims "mario" shape
+  Player shape _ _ -> Debug.trace "mario" <| displayPlayer dims "mario" (Debug.watch "mario" shape)
   Ghost shape _ _ -> displayPlayer dims "ghost" shape
   Platform shape _ -> displayPlatform dims shape
   Sky -> displaySky dims
@@ -229,5 +237,6 @@ input =
       deltaArrows = Signal.map2 (,) delta Keyboard.arrows
       moves = Signal.map Move (Signal.sampleOn delta deltaArrows)
       spawns = Signal.map Spawn (Signal.Time.dropWithin second Keyboard.space)
+      rewind = Signal.map Rewind (Signal.keepWhen Keyboard.shift False (Signal.sampleOn delta Keyboard.shift))
   in
-      Signal.merge moves spawns
+      Signal.mergeMany [rewind, spawns, moves]
