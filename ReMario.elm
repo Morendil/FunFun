@@ -215,6 +215,6 @@ input =
       deltaArrows = Signal.map2 (,) delta Keyboard.arrows
       moves = Signal.map Move (Signal.sampleOn delta deltaArrows)
       spawns = Signal.map Spawn (Signal.Time.dropWithin second Keyboard.space)
-      rewind = Signal.map Rewind (Signal.keepWhen Keyboard.shift False (Signal.sampleOn delta Keyboard.shift))
+      rewind = Signal.map Rewind (Signal.keepWhen Keyboard.shift True (Signal.sampleOn delta Keyboard.shift))
   in
       Signal.mergeMany [rewind, spawns, moves]
