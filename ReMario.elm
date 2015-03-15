@@ -57,28 +57,23 @@ type Update = Rewind Bool | Spawn Bool | Move (Float, Keys)
 
 step : Update -> World -> World
 step u world =
-  let player = head world
-      ghost one = case one of
-        Player _ history _ -> Ghost start_mario (reverse history) (reverse history)
+  let ghost one = case one of
+        Player _ history _ -> let backward = reverse history in Ghost start_mario backward backward
+        _ -> one
+      rewind one = case one of
+        Player sprite (h::hs) (x::xs) -> Player x hs xs
         _ -> one
       reset one = case one of
         Player _ _ _ -> Player start_mario [] []
         Ghost _ history copy -> Ghost start_mario copy copy
         _ -> one
+      player = head world
   in
   case u of
     Spawn True -> reset player :: ghost player :: map reset (tail world)
     Rewind True -> rewind player :: tail world
     Move move -> mapAllBut (stepOne move) world
     _ -> world
-
-rewind item =
-  case item of
-    Player sprite _ [] -> item
-    Player sprite (h::hs) (x::xs) -> 
-      let l = Debug.watch "history" (length hs)
-      in Player (Debug.watch "<-" x) hs xs
-    _ -> item
 
 nothing _ _ sprite = sprite
 sway (dt,_) world sprite = {sprite | t <- sprite.t+dt, x <- sprite.x + dt * sprite.vx, vx <- sin(sprite.t/50)}
@@ -87,8 +82,8 @@ stepOne : (Float, Keys) -> World -> Sprite -> Sprite
 stepOne move world sprite = case sprite of
   Player sprite' h past -> Player (stepPlayer move world sprite') (move :: h) (sprite' :: past)
   Ghost sprite' [] copy -> let (dt,keys) = move in Ghost (stepPlayer (dt,{x=0,y=0}) world sprite') [] copy
-  Ghost sprite' h copy -> Ghost (stepPlayer (head h) world sprite') (tail h) copy
-  Platform sprite behavior -> Platform (behavior move world sprite) behavior
+  Ghost sprite' (h::hs) copy -> Ghost (stepPlayer h world sprite') hs copy
+  Platform sprite' behavior -> Platform (behavior move world sprite') behavior
   _ -> sprite
 
 stepPlayer : (Float, Keys) -> World -> BasicSprite -> BasicSprite
