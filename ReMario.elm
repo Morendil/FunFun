@@ -57,16 +57,18 @@ type Update = Rewind Bool | Spawn Bool | Move (Float, Keys)
 
 step : Update -> World -> World
 step u world =
-  let ghost = case (head world) of
+  let player = head world
+      ghost one = case one of
         Player _ history _ -> Ghost start_mario (reverse history) (reverse history)
+        _ -> one
       reset one = case one of
         Player _ _ _ -> Player start_mario [] []
         Ghost _ history copy -> Ghost start_mario copy copy
         _ -> one
   in
   case u of
-    Spawn True -> reset (head world) :: ghost :: map reset (tail world)
-    Rewind True -> rewind (head world) :: tail world
+    Spawn True -> reset player :: ghost player :: map reset (tail world)
+    Rewind True -> rewind player :: tail world
     Move move -> mapAllBut (stepOne move) world
     _ -> world
 
