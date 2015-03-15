@@ -98,6 +98,15 @@ jump : Keys -> BasicSprite -> BasicSprite
 jump keys mario =
     if keys.y > 0 && mario.vy == 0 then { mario | vy <- 4.0 } else mario
 
+walk : Keys -> BasicSprite -> BasicSprite
+walk keys mario =
+    { mario |
+        vx <- toFloat keys.x,
+        dir <- if | keys.x < 0 -> Left
+                  | keys.x > 0 -> Right
+                  | otherwise  -> mario.dir
+    }
+
 blocks mario p =
   let mlft = mario.x-mario.w/2
       mrgt = mario.x+mario.w/2
@@ -139,15 +148,6 @@ physics dt world mario =
         x <- if (isEmpty blockers) then newx+extrax else mario.x,
         y <- if (isEmpty support) then newy else mario.y,
         vy <- newvy
-    }
-
-walk : Keys -> BasicSprite -> BasicSprite
-walk keys mario =
-    { mario |
-        vx <- toFloat keys.x,
-        dir <- if | keys.x < 0 -> Left
-                  | keys.x > 0 -> Right
-                  | otherwise  -> mario.dir
     }
 
 -- DISPLAY
