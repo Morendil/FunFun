@@ -15,9 +15,10 @@ import Generic (..)
 
 type alias World = List Sprite
 type alias History = List (Float,Keys)
+type alias Past = List BasicSprite
 type alias Behavior = (Float, Keys) -> World -> PlatformSprite -> PlatformSprite
 
-type Sprite = Sky | Platform PlatformSprite Behavior | Player BasicSprite History (List BasicSprite) | Ghost BasicSprite History History
+type Sprite = Sky | Platform PlatformSprite Behavior | Cloud PlatformSprite Behavior | Player BasicSprite History Past | Ghost BasicSprite History History
 
 type alias Common a =
     { a |
@@ -46,7 +47,7 @@ start_state = [
     Player start_mario [] [],
     Platform { x = 40 , y = 20 , w = 20 , h = 20 , c = red , t = 0, vx = 0, vy = 0} nothing,
     Platform { x = -80 , y = 80 , w = 20 , h = 20 , c = red , t = 0, vx = 0, vy = 0} nothing,
-    Platform { x = -60 , y = 30 , w = 20 , h = 4 , c = blue , t = 0, vx = 0, vy = 0} sway,
+    Cloud { x = -60 , y = 30 , w = 20 , h = 4 , c = blue , t = 0, vx = 0, vy = 0} sway,
     -- the floor
     Platform { x = 0 , y = 0 , w = 9999 , h = 50 , c = rgb 74 167 43 , t = 0, vx = 0, vy = 0} nothing,
     Sky ]
@@ -84,6 +85,7 @@ stepOne move world sprite = case sprite of
   Ghost sprite' [] copy -> let (dt,keys) = move in Ghost (stepPlayer (dt,{x=0,y=0}) world sprite') [] copy
   Ghost sprite' (h::hs) copy -> Ghost (stepPlayer h world sprite') hs copy
   Platform sprite' behavior -> Platform (behavior move world sprite') behavior
+  Cloud sprite' behavior -> Cloud (behavior move world sprite') behavior
   _ -> sprite
 
 stepPlayer : (Float, Keys) -> World -> BasicSprite -> BasicSprite
@@ -112,23 +114,11 @@ blocks mario p =
       mrgt = mario.x+mario.w/2
       mtop = mario.y+mario.h
       mbot = mario.y
-      collides g =
-        let glft = g.x-g.w/2
-            grgt = g.x+g.w/2
-            gtop = g.y+g.h
-        in
-          intersects (glft,grgt) (mlft,mrgt) && intersects (gtop-2,gtop) (mbot,mbot+2) && mario.vy <= 0        
   in case p of
-    Platform pl _ ->
-      let plft = pl.x-pl.w/2
-          prgt = pl.x+pl.w/2
-          ptop = pl.y
-          pbot = pl.y-pl.h
-      in
-        if pl.c == blue then intersects (plft,prgt) (mlft,mrgt) && intersects (ptop-2,ptop) (mbot,mbot+2) && mario.vy <= 0
-                        else intersects (plft,prgt) (mlft,mrgt) && intersects (pbot,ptop) (mbot,mtop)
-    Ghost g _ _ -> collides g
-    Player p _ _ -> collides p
+    Platform g _ -> intersects (g.x-g.w/2,g.x+g.w/2) (mlft,mrgt) && intersects (g.y-g.h,g.y) (mbot,mtop)
+    Cloud g _ -> intersects (g.x-g.w/2,g.x+g.w/2) (mlft,mrgt) && intersects (g.y-2,g.y) (mbot,mbot+2) && mario.vy <= 0
+    Ghost g _ _ -> intersects (g.x-g.w/2,g.x+g.w/2) (mlft,mrgt) && intersects (g.y+g.h-2,g.y+g.h) (mbot,mbot+2) && mario.vy <= 0
+    Player g _ _ -> intersects (g.x-g.w/2,g.x+g.w/2) (mlft,mrgt) && intersects (g.y+g.h-2,g.y+g.h) (mbot,mbot+2) && mario.vy <= 0
     _ -> False
 
 physics : Float -> World -> BasicSprite -> BasicSprite
@@ -141,6 +131,7 @@ physics dt world mario =
           case head support of
             Player pl _ _ -> dt * pl.vx
             Platform pl _ -> dt * pl.vx
+            Cloud pl _ -> dt * pl.vx
             _ -> 0
         blockers = filter (blocks {mario | x <- newx + extrax}) world
     in    
@@ -162,6 +153,7 @@ displayOne dims sprite = case sprite of
   Player shape _ _ -> Debug.trace "mario" <| displayPlayer dims "mario" (Debug.watch "mario" shape)
   Ghost shape _ _ -> displayPlayer dims "ghost" shape
   Platform shape _ -> displayPlatform dims shape
+  Cloud shape _ -> displayPlatform dims shape
   Sky -> displaySky dims
 
 displayPlayer : (Float, Float) -> String -> BasicSprite -> Form
