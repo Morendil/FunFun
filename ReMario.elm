@@ -40,16 +40,21 @@ type Direction = Left | Right
 
 type alias Keys = { x:Int, y:Int }
 
+column common = (common.x-common.w/2,common.x+common.w/2)
+row common = (common.y,common.y+common.h)
+feet common = (common.y+common.h-2,common.y+common.h)
+hair common = (common.y,common.y+2)
+
 start_mario = { x = 0 , y = 0 , w = 16 , h = 26 , vx = 0 , vy = 0 , dir = Right }
 
 start_state : World
 start_state = [
     Player start_mario [] [],
-    Platform { x = 40 , y = 20 , w = 20 , h = 20 , c = red , t = 0, vx = 0, vy = 0} nothing,
-    Platform { x = -80 , y = 80 , w = 20 , h = 20 , c = red , t = 0, vx = 0, vy = 0} nothing,
-    Cloud { x = -60 , y = 30 , w = 20 , h = 4 , c = blue , t = 0, vx = 0, vy = 0} sway,
+    Platform { x = 40 , y = 0 , w = 20 , h = 20 , c = red , t = 0, vx = 0, vy = 0} nothing,
+    Platform { x = -80 , y = 60 , w = 20 , h = 20 , c = red , t = 0, vx = 0, vy = 0} nothing,
+    Cloud { x = -60 , y = 26 , w = 20 , h = 4 , c = blue , t = 0, vx = 0, vy = 0} sway,
     -- the floor
-    Platform { x = 0 , y = 0 , w = 9999 , h = 50 , c = rgb 74 167 43 , t = 0, vx = 0, vy = 0} nothing,
+    Platform { x = 0 , y = -50 , w = 9999 , h = 50 , c = rgb 74 167 43 , t = 0, vx = 0, vy = 0} nothing,
     Sky ]
 
 -- UPDATE
@@ -110,15 +115,11 @@ walk keys mario =
     }
 
 blocks mario p =
-  let mlft = mario.x-mario.w/2
-      mrgt = mario.x+mario.w/2
-      mtop = mario.y+mario.h
-      mbot = mario.y
-  in case p of
-    Platform g _ -> intersects (g.x-g.w/2,g.x+g.w/2) (mlft,mrgt) && intersects (g.y-g.h,g.y) (mbot,mtop)
-    Cloud g _ -> intersects (g.x-g.w/2,g.x+g.w/2) (mlft,mrgt) && intersects (g.y-2,g.y) (mbot,mbot+2) && mario.vy <= 0
-    Ghost g _ _ -> intersects (g.x-g.w/2,g.x+g.w/2) (mlft,mrgt) && intersects (g.y+g.h-2,g.y+g.h) (mbot,mbot+2) && mario.vy <= 0
-    Player g _ _ -> intersects (g.x-g.w/2,g.x+g.w/2) (mlft,mrgt) && intersects (g.y+g.h-2,g.y+g.h) (mbot,mbot+2) && mario.vy <= 0
+  case p of
+    Platform g _ -> intersects (column g) (column mario) && intersects (row g) (row mario)
+    Cloud g _ -> intersects (column g) (column mario) && intersects (feet g) (hair mario) && mario.vy <= 0
+    Ghost g _ _ -> intersects (column g) (column mario) && intersects (feet g) (hair mario) && mario.vy <= 0
+    Player g _ _ -> intersects (column g) (column mario) && intersects (feet g) (hair mario) && mario.vy <= 0
     _ -> False
 
 physics : Float -> World -> BasicSprite -> BasicSprite
@@ -157,7 +158,7 @@ displayOne dims sprite = case sprite of
   Sky -> displaySky dims
 
 displayPlayer : (Float, Float) -> String -> BasicSprite -> Form
-displayPlayer (w,h) who mario =
+displayPlayer dims who mario =
   let verb = if | (abs mario.vy) > 0 -> "jump"
                 | mario.vx /= 0 -> "walk"
                 | otherwise     -> "stand"
@@ -169,26 +170,25 @@ displayPlayer (w,h) who mario =
       src  = "imgs/" ++ who ++ "/"++ verb ++ "/" ++ dir ++ ".gif"
 
       marioImage = image 35 35 src
-
-      base = 50
   in
     marioImage
       |> toForm
-      |> move (mario.x, mario.y + mario.h/2 + base - h/2)
+      |> move (displayCoords dims mario)
 
 displayPlatform : (Float, Float) -> PlatformSprite -> Form
 displayPlatform (w,h) pl =
   let pw = min w pl.w
       ph = min h pl.h
-      base = 50
   in
     rect pw ph
       |> filled pl.c
-      |> move (pl.x, pl.y - ph/2 + base - h/2)
+      |> move (displayCoords (w,h) pl)
 
 displaySky : (Float, Float) -> Form
 displaySky (w,h) =
   rect w h |> filled (rgb 174 238 238)
+
+displayCoords (w,h) common = let base = 50 in (common.x, common.y + common.h/2 + base - h/2)
 
 -- SIGNALS
 
