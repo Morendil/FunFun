@@ -37,11 +37,13 @@ updateTick dt world =
         xx = (world.planet.x-s.x)
         yy = (world.planet.y-s.y)
         d2 = xx^2 + yy^2
+        ax = 0.7 * (sign xx) / d2
+        ay = 0.7 * (sign yy) / d2
         s' = { s |
-                x <- s.x + dt * s.vx,
-                y <- s.y + dt * s.vy,
-                vx <- s.vx + dt * 0.7 * (sign xx) / d2,
-                vy <- s.vy + dt * 0.7 * (sign yy) / d2
+                x <- s.x + dt * s.vx + (ax * dt*dt / 2),
+                y <- s.y + dt * s.vy + (ay * dt*dt / 2),
+                vx <- s.vx + dt * ax,
+                vy <- s.vy + dt * ay
         }
     in {world | ship <- s'}
 
