@@ -14,7 +14,7 @@ import Generic (..)
 start viewport = case viewport of
     Viewport (w,h) -> {
         view = {w = w, h = h},
-        ship = {x = 0, y = 0, vx =0, vy = 0.1},
+        ship = {x = 0, y = 0, vx =0, vy = 0.09},
         planet = {x = -150, y = 0, r = 70}
     }
 
@@ -33,16 +33,17 @@ updateViewport (w,h) world =
 
 updateTick dt world =
     let s = world.ship
-        sign x = if x < 0 then -1 else if x > 0 then 1 else 0
-        xx = (world.planet.x-s.x)
-        yy = (world.planet.y-s.y)
-        d2 = xx^2 + yy^2
-        s' = { s |
-                x <- s.x + dt * s.vx,
-                y <- s.y + dt * s.vy,
-                vx <- s.vx + dt * 0.7 * (sign xx) / d2,
-                vy <- s.vy + dt * 0.7 * (sign yy) / d2
-        }
+        moins (x1,y1) (x2,y2) = (x1-x2,y1-y2)
+        fois f (x1,y1) = (f*x1,f*y1)
+        center object = (object.x,object.y)
+        distance (x1,y1) (x2,y2) = sqrt((x2-x1)^2+(y2-y1)^2)
+        r = distance (center s) (center world.planet)
+        f = 1/r^2
+        (ax,ay) = f `fois` ((1/r) `fois` ((center world.planet) `moins` (center s)))
+        (vx,vy) = (ax*dt+s.vx,ay*dt+s.vy)
+        (x,y) = (vx*dt+s.x,vy*dt+s.y)
+        --
+        s' = {s | x <- x, y <- y, vx <- vx, vy <- vy}
     in {world | ship <- s'}
 
 -- Display
