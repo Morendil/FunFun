@@ -43,8 +43,8 @@ updateTick dt world =
         ax = 0.7 * xx / (sqrt(d2) * d2)
         ay = 0.7 * yy / (sqrt(d2) * d2)
         s' = { s |
-                x <- s.x + dt * s.vx + (ax * dt*dt / 2),
-                y <- s.y + dt * s.vy + (ay * dt*dt / 2),
+                x <- s.x + dt * s.vx + (ax * dt*dt),
+                y <- s.y + dt * s.vy + (ay * dt*dt),
                 vx <- s.vx + dt * ax,
                 vy <- s.vy + dt * ay
         }
