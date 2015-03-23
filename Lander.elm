@@ -34,21 +34,35 @@ updateViewport (w,h) world =
         v' = { wv | w <- 0, h <- 0}
     in {world | view <- v'}
 
-updateTick dt world =
-    let s = world.ship
-        sign x = if x < 0 then -1 else if x > 0 then 1 else 0
-        xx = (world.planet.x-s.x)
-        yy = (world.planet.y-s.y)
+evaluate planet ship dt deriv =
+    let ship' = {ship | x <- ship.x + deriv.dx * dt,
+                        y <- ship.y + deriv.dy * dt,
+                        vx <- ship.vx + deriv.dvx * dt,
+                        vy <- ship.vy + deriv.dvy * dt}
+        (ax,ay) = accel planet ship
+    in {dx = ship.vx, dy = ship.vy, dvx = ax, dvy = ay}
+
+accel planet ship =
+    let sign x = if x < 0 then -1 else if x > 0 then 1 else 0
+        xx = (planet.x-ship.x)
+        yy = (planet.y-ship.y)
         d2 = xx^2 + yy^2
         ax = 0.7 * (sign xx) / d2
         ay = 0.7 * (sign yy) / d2
-        s' = { s |
-                x <- s.x + dt * s.vx + (ax * dt*dt / 2),
-                y <- s.y + dt * s.vy + (ay * dt*dt / 2),
-                vx <- s.vx + dt * ax,
-                vy <- s.vy + dt * ay
-        }
-    in {world | ship <- s'}
+    in (ax, ay)
+
+updateTick dt world =
+    let s = world.ship
+        rk1 = evaluate world.planet s 0 {dx = 0, dy = 0, dvx = 0, dvy = 0}
+        rk2 = evaluate world.planet s (dt/2) rk1
+        rk3 = evaluate world.planet s (dt/2) rk2
+        rk4 = evaluate world.planet s dt rk3
+        dxdt = (rk1.dx + 2*(rk2.dx + rk3.dx) + rk4.dx)/6
+        dydt = (rk1.dy + 2*(rk2.dy + rk3.dy) + rk4.dy)/6
+        dvxdt = (rk1.dvx + 2*(rk2.dvx + rk3.dvx) + rk4.dvx)/6
+        dvydt = (rk1.dvy + 2*(rk2.dvy + rk3.dvy) + rk4.dvy)/6
+        ship' = {s | x <- s.x + dxdt*dt, y <- s.y + dydt*dt, vx <- s.vx + dvxdt*dt, vy <- s.vy + dvydt*dt}
+    in {world | ship <- ship'}
 
 updateMove arrows world = 
     let s = world.ship
