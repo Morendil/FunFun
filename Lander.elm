@@ -16,8 +16,8 @@ import Generic (..)
 start viewport = case viewport of
     Viewport (w,h) -> {
         view = {w = w, h = h},
-        ship = {x = 0, y = 0, vx =0, vy = 0.07, r=0},
-        planet = {x = -150, y = 0, r = 70}
+        ship = {x = 0, y = 0, vx =0, vy = 0.07, heading=0, m=0.001},
+        planet = {x = -150, y = 0, vx =0, vy = 0, r = 70, m=1}
     }
 
 -- Update
@@ -36,25 +36,33 @@ updateViewport (w,h) world =
 
 updateTick dt world =
     let s = world.ship
-        sign x = if x < 0 then -1 else if x > 0 then 1 else 0
+        p = world.planet
         xx = (world.planet.x-s.x)
         yy = (world.planet.y-s.y)
         d2 = xx^2 + yy^2
-        ax = 0.7 * xx / (sqrt(d2) * d2)
-        ay = 0.7 * yy / (sqrt(d2) * d2)
+        ax = p.m * xx / (sqrt(d2) * d2)
+        ay = p.m * yy / (sqrt(d2) * d2)
         s' = { s |
                 x <- s.x + dt * s.vx + (ax * dt*dt),
                 y <- s.y + dt * s.vy + (ay * dt*dt),
                 vx <- s.vx + dt * ax,
                 vy <- s.vy + dt * ay
         }
-    in {world | ship <- s'}
+        pax = s.m * xx / (sqrt(d2) * d2)
+        pay = s.m * yy / (sqrt(d2) * d2)
+        p' = { p |
+                x <- p.x + dt * p.vx + (pax * dt*dt),
+                y <- p.y + dt * p.vy + (pay * dt*dt),
+                vx <- p.vx + dt * pax,
+                vy <- p.vy + dt * pay
+        }
+    in {world | ship <- s', planet <- p'}
 
 updateMove arrows world = 
     let s = world.ship
-        s' = {s | r <- s.r-(toFloat arrows.x)*5,
-                  vx <- s.vx - (toFloat arrows.y) * sin (degrees s.r) * 0.001,
-                  vy <- s.vy + (toFloat arrows.y) * cos (degrees s.r) * 0.001}
+        s' = {s | heading <- s.heading-(toFloat arrows.x)*5,
+                  vx <- s.vx - (toFloat arrows.y) * sin (degrees s.heading) * 0.001,
+                  vy <- s.vy + (toFloat arrows.y) * cos (degrees s.heading) * 0.001}
     in {world | ship <- s'}
 
 -- Display
@@ -64,10 +72,13 @@ display world =
     in collage world.view.w world.view.h [
         filled black (rect w' h'),
         Debug.trace "ship" (
-            move (world.ship.x, world.ship.y) <| rotate (degrees world.ship.r) <|
+            move (world.ship.x, world.ship.y) <| rotate (degrees world.ship.heading) <|
                 group [rotate (degrees -30) (outlined (solid white) (ngon 3 25)), outlined (solid white) (rect 3 25)]
             ),
-        move (world.planet.x, world.planet.y) <| outlined (solid white) (circle world.planet.r)]
+        Debug.trace "planet" (
+            move (world.planet.x, world.planet.y) <| outlined (solid white) (circle world.planet.r))
+        ]
+        
 
 -- Signals
 
