@@ -34,29 +34,23 @@ updateViewport (w,h) world =
         v' = { wv | w <- 0, h <- 0}
     in {world | view <- v'}
 
+integrate dt object1 object2 =
+    let xx = (object1.x-object2.x)
+        yy = (object1.y-object2.y)
+        d2 = xx^2 + yy^2
+        ax = object1.m * xx / (sqrt(d2) * d2)
+        ay = object1.m * yy / (sqrt(d2) * d2)
+    in { object2 |
+            x <- object2.x + dt * object2.vx + (ax * dt*dt),
+            y <- object2.y + dt * object2.vy + (ay * dt*dt),
+            vx <- object2.vx + dt * ax,
+            vy <- object2.vy + dt * ay
+        }
+
 updateTick dt world =
     let s = world.ship
         p = world.planet
-        xx = (world.planet.x-s.x)
-        yy = (world.planet.y-s.y)
-        d2 = xx^2 + yy^2
-        ax = p.m * xx / (sqrt(d2) * d2)
-        ay = p.m * yy / (sqrt(d2) * d2)
-        s' = { s |
-                x <- s.x + dt * s.vx + (ax * dt*dt),
-                y <- s.y + dt * s.vy + (ay * dt*dt),
-                vx <- s.vx + dt * ax,
-                vy <- s.vy + dt * ay
-        }
-        pax = s.m * xx / (sqrt(d2) * d2)
-        pay = s.m * yy / (sqrt(d2) * d2)
-        p' = { p |
-                x <- p.x + dt * p.vx + (pax * dt*dt),
-                y <- p.y + dt * p.vy + (pay * dt*dt),
-                vx <- p.vx + dt * pax,
-                vy <- p.vy + dt * pay
-        }
-    in {world | ship <- s', planet <- p'}
+    in { world | ship <- integrate dt p s, planet <- integrate dt s p}
 
 updateMove arrows world = 
     let s = world.ship
