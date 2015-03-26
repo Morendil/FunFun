@@ -5,6 +5,7 @@ import Graphics.Collage (..)
 import Transform2D (..)
 import Color (..)
 import Time (..)
+import List (..)
 import Debug
 import Window
 import Keyboard
@@ -13,11 +14,13 @@ import Generic (..)
 
 -- Model
 
+type Body = Ship {x:Float,y:Float,vx:Float,vy:Float,heading:Float,m:Float} | Planet {x:Float,y:Float,vx:Float,vy:Float,r:Float,m:Float}
+
 start viewport = case viewport of
     Viewport (w,h) -> {
         view = {w = w, h = h},
-        ship = {x = 0, y = 0, vx =0, vy = 0.07, heading=0, m=0.001},
-        planet = {x = -150, y = 0, vx =0, vy = 0, r = 70, m=1}
+        ship = Ship {x = 0, y = 0, vx =0, vy = 0.07, heading=0, m=0.001},
+        planet = Planet {x = -150, y = 0, vx =0, vy = 0, r = 70, m=1}
     }
 
 -- Update
@@ -48,31 +51,31 @@ integrate dt object1 object2 =
         }
 
 updateTick dt world =
-    let s = world.ship
-        p = world.planet
-    in { world | ship <- integrate dt p s, planet <- integrate dt s p}
+    let (Ship s) = world.ship
+        (Planet p) = world.planet
+    in { world | ship <- Ship (integrate dt p s), planet <- Planet (integrate dt s p)}
 
 updateMove arrows world = 
-    let s = world.ship
+    let (Ship s) = world.ship
         s' = {s | heading <- s.heading-(toFloat arrows.x)*5,
                   vx <- s.vx - (toFloat arrows.y) * sin (degrees s.heading) * 0.001,
                   vy <- s.vy + (toFloat arrows.y) * cos (degrees s.heading) * 0.001}
-    in {world | ship <- s'}
+    in {world | ship <- Ship s'}
 
 -- Display
 
+displayBody body =
+    case body of
+        Ship s -> Debug.trace "ship" <| move (s.x, s.y)
+            <| rotate (degrees s.heading)
+            <| group [  rotate (degrees -30) (outlined (solid white) (ngon 3 25)),
+                        outlined (solid white) (rect 3 25)]
+        Planet p -> move (p.x, p.y) <| outlined (solid white) (circle p.r)
+
 display world =
     let (w',h') = (toFloat world.view.w, toFloat world.view.h)
-    in collage world.view.w world.view.h [
-        filled black (rect w' h'),
-        Debug.trace "ship" (
-            move (world.ship.x, world.ship.y) <| rotate (degrees world.ship.heading) <|
-                group [rotate (degrees -30) (outlined (solid white) (ngon 3 25)), outlined (solid white) (rect 3 25)]
-            ),
-        Debug.trace "planet" (
-            move (world.planet.x, world.planet.y) <| outlined (solid white) (circle world.planet.r))
-        ]
-        
+    in collage world.view.w world.view.h <|
+            append [filled black (rect w' h')] (map displayBody [world.ship,world.planet])
 
 -- Signals
 
