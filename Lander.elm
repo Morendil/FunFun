@@ -13,11 +13,14 @@ import Generic (..)
 
 -- Model
 
+type alias Mass = {x:Float,y:Float,vx:Float,vy:Float,m:Float}
+type Body = Ship {heading: Float} | Planet {r:Float}
+
 start viewport = case viewport of
     Viewport (w,h) -> {
         view = {w = w, h = h},
         ship = {x = 0, y = 0, vx =0, vy = 0.07, heading=0, m=0.001},
-        planet = {x = -150, y = 0, vx =0, vy = 0, r = 70, m=1}
+        planet = {mass = {x = -150, y = 0, vx =0, vy = 0, m=1}, body = Planet {r = 70}}
     }
 
 -- Update
@@ -50,7 +53,9 @@ integrate dt object1 object2 =
 updateTick dt world =
     let s = world.ship
         p = world.planet
-    in { world | ship <- integrate dt p s, planet <- integrate dt s p}
+        m' = integrate dt s p.mass
+        p' = {p | mass <- m'}
+    in { world | ship <- integrate dt p.mass s, planet <- p'}
 
 updateMove arrows world = 
     let s = world.ship
@@ -63,6 +68,7 @@ updateMove arrows world =
 
 display world =
     let (w',h') = (toFloat world.view.w, toFloat world.view.h)
+        (Planet body) = world.planet.body
     in collage world.view.w world.view.h [
         filled black (rect w' h'),
         Debug.trace "ship" (
@@ -70,7 +76,7 @@ display world =
                 group [rotate (degrees -30) (outlined (solid white) (ngon 3 25)), outlined (solid white) (rect 3 25)]
             ),
         Debug.trace "planet" (
-            move (world.planet.x, world.planet.y) <| outlined (solid white) (circle world.planet.r))
+            move (world.planet.mass.x, world.planet.mass.y) <| outlined (solid white) (circle body.r))
         ]
         
 
