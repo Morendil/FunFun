@@ -19,8 +19,8 @@ type Body = Ship {heading: Float} | Planet {r:Float}
 start viewport = case viewport of
     Viewport (w,h) -> {
         view = {w = w, h = h},
-        ship = {x = 0, y = 0, vx =0, vy = 0.07, heading=0, m=0.001},
-        planet = {mass = {x = -150, y = 0, vx =0, vy = 0, m=1}, body = Planet {r = 70}}
+        ship =   {mass = {x = 0, y = 0, vx =0, vy = 0.07, m=0.001}, body = Ship {heading=0}},
+        planet = {mass = {x = -150, y = 0, vx =0, vy = 0, m=1},     body = Planet {r = 70}}
     }
 
 -- Update
@@ -53,30 +53,35 @@ integrate dt object1 object2 =
 updateTick dt world =
     let s = world.ship
         p = world.planet
-        m' = integrate dt s p.mass
-        p' = {p | mass <- m'}
-    in { world | ship <- integrate dt p.mass s, planet <- p'}
+        p' = {p | mass <- integrate dt s.mass p.mass}
+        s' = {s | mass <- integrate dt p.mass s.mass}
+    in { world | ship <- s', planet <- p'}
 
 updateMove arrows world = 
     let s = world.ship
-        s' = {s | heading <- s.heading-(toFloat arrows.x)*5,
-                  vx <- s.vx - (toFloat arrows.y) * sin (degrees s.heading) * 0.001,
-                  vy <- s.vy + (toFloat arrows.y) * cos (degrees s.heading) * 0.001}
+        (Ship body) = s.body
+        smass = s.mass
+        body' = {body | heading <- body.heading-(toFloat arrows.x)*5}
+        mass' = {smass | vx <- s.mass.vx - (toFloat arrows.y) * sin (degrees body.heading) * 0.001,
+                        vy <- s.mass.vy + (toFloat arrows.y) * cos (degrees body.heading) * 0.001}
+        s' = {s | body <- Ship body',
+                  mass <- mass'}
     in {world | ship <- s'}
 
 -- Display
 
 display world =
     let (w',h') = (toFloat world.view.w, toFloat world.view.h)
-        (Planet body) = world.planet.body
+        (Planet pbody) = world.planet.body
+        (Ship sbody) = world.ship.body
     in collage world.view.w world.view.h [
         filled black (rect w' h'),
         Debug.trace "ship" (
-            move (world.ship.x, world.ship.y) <| rotate (degrees world.ship.heading) <|
+            move (world.ship.mass.x, world.ship.mass.y) <| rotate (degrees sbody.heading) <|
                 group [rotate (degrees -30) (outlined (solid white) (ngon 3 25)), outlined (solid white) (rect 3 25)]
             ),
         Debug.trace "planet" (
-            move (world.planet.mass.x, world.planet.mass.y) <| outlined (solid white) (circle body.r))
+            move (world.planet.mass.x, world.planet.mass.y) <| outlined (solid white) (circle pbody.r))
         ]
         
 
