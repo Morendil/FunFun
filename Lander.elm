@@ -5,6 +5,7 @@ import Graphics.Collage (..)
 import Transform2D (..)
 import Color (..)
 import Time (..)
+import List (..)
 import Debug
 import Window
 import Keyboard
@@ -70,20 +71,19 @@ updateMove arrows world =
 
 -- Display
 
+displayBody {mass,body} =
+    case body of
+        Ship {heading} -> Debug.trace "ship" <|
+            move (mass.x, mass.y) <| rotate (degrees heading) <|
+            group [rotate (degrees -30) (outlined (solid white) (ngon 3 25)), outlined (solid white) (rect 3 25)]
+        Planet {r} -> Debug.trace "planet" <|
+            move (mass.x, mass.y) <| outlined (solid white) (circle r)
+
 display world =
     let (w',h') = (toFloat world.view.w, toFloat world.view.h)
-        (Planet pbody) = world.planet.body
-        (Ship sbody) = world.ship.body
-    in collage world.view.w world.view.h [
-        filled black (rect w' h'),
-        Debug.trace "ship" (
-            move (world.ship.mass.x, world.ship.mass.y) <| rotate (degrees sbody.heading) <|
-                group [rotate (degrees -30) (outlined (solid white) (ngon 3 25)), outlined (solid white) (rect 3 25)]
-            ),
-        Debug.trace "planet" (
-            move (world.planet.mass.x, world.planet.mass.y) <| outlined (solid white) (circle pbody.r))
-        ]
-        
+        sky = [filled black (rect w' h')]
+        bodies = sky ++ (map displayBody [world.ship, world.planet])
+    in collage world.view.w world.view.h bodies
 
 -- Signals
 
