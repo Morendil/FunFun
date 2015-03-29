@@ -36,7 +36,7 @@ update s world = case s of
 
 updateViewport (w,h) world =
     let wv = world.view
-        v' = { wv | w <- 0, h <- 0}
+        v' = { wv | w <- w, h <- h}
     in {world | view <- v'}
 
 integrate dt object1 object2 =
