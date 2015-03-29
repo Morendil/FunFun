@@ -54,11 +54,9 @@ integrate dt object1 object2 =
 updateTick dt world =
     let integrateAll dt bodies one = foldl (integrate dt) one bodies
         bodies = mapAllBut (integrateAll dt) (map .mass [world.ship,world.planet])
-        s = world.ship
-        p = world.planet
-        s' = {s | mass <- head bodies}
-        p' = {p | mass <- head (drop 1 bodies)}
-    in { world | ship <- s', planet <- p'}
+        updateMass e m = {e | mass <- m}
+        entities = map2 updateMass [world.ship,world.planet] bodies
+    in { world | ship <- head entities, planet <- head (drop 1 entities)}
 
 updateMove arrows world = 
     let s = world.ship
