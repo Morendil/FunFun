@@ -20,8 +20,9 @@ type Body = Ship {heading: Float} | Planet {r:Float}
 start viewport = case viewport of
     Viewport (w,h) -> {
         view = {w = w, h = h},
-        ship =   {mass = {x = 0, y = 0, vx =0, vy = 0.07, m=0.001}, body = Ship {heading=0}},
-        planet = {mass = {x = -150, y = 0, vx =0, vy = 0, m=1},     body = Planet {r = 70}}
+        bodies = [{mass = {x = 0, y = 0, vx =0, vy = 0.06, m=0.001}, body = Ship {heading=0}},
+                  {mass = {x = -150, y = 0, vx =0, vy = 0, m=1},     body = Planet {r = 70}},
+                  {mass = {x = -80, y = 80, vx =0.05, vy = -0.05, m=0.01},   body = Planet {r = 7}}]
     }
 
 -- Update
@@ -53,13 +54,12 @@ integrate dt object1 object2 =
 
 updateTick dt world =
     let integrateAll dt bodies one = foldl (integrate dt) one bodies
-        bodies = mapAllBut (integrateAll dt) (map .mass [world.ship,world.planet])
         updateMass e m = {e | mass <- m}
-        entities = map2 updateMass [world.ship,world.planet] bodies
-    in { world | ship <- head entities, planet <- head (drop 1 entities)}
+        bodies = mapAllBut (integrateAll dt) (map .mass world.bodies)
+    in { world | bodies <- map2 updateMass world.bodies bodies}
 
 updateMove arrows world = 
-    let s = world.ship
+    let (s :: rest) = world.bodies
         (Ship body) = s.body
         smass = s.mass
         body' = {body | heading <- body.heading-(toFloat arrows.x)*5}
@@ -67,7 +67,7 @@ updateMove arrows world =
                         vy <- s.mass.vy + (toFloat arrows.y) * cos (degrees body.heading) * 0.001}
         s' = {s | body <- Ship body',
                   mass <- mass'}
-    in {world | ship <- s'}
+    in {world | bodies <- s' :: rest}
 
 -- Display
 
@@ -82,7 +82,7 @@ displayBody {mass,body} =
 display world =
     let (w',h') = (toFloat world.view.w, toFloat world.view.h)
         sky = [filled black (rect w' h')]
-        bodies = sky ++ (map displayBody [world.ship, world.planet])
+        bodies = sky ++ (map displayBody world.bodies)
     in collage world.view.w world.view.h bodies
 
 -- Signals
