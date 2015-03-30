@@ -2,7 +2,7 @@ import Signal
 import Signal.Extra
 import Graphics.Element (..)
 import Graphics.Collage (..)
-import Transform2D (..)
+import Transform2D
 import Color (..)
 import Time (..)
 import List (..)
@@ -20,6 +20,8 @@ type Body = Ship {heading: Float} | Planet {r:Float}
 start viewport = case viewport of
     Viewport (w,h) -> {
         view = {w = w, h = h},
+        zoom = 1.0,
+        time = 0,
         bodies = [{mass = {x = 0, y = 0, vx =0, vy = 0.06, m=0.001}, body = Ship {heading=0}},
                   {mass = {x = -150, y = 0, vx =0, vy = 0, m=1},     body = Planet {r = 70}},
                   {mass = {x = -80, y = 80, vx =0.05, vy = -0.05, m=0.01},   body = Planet {r = 7}}]
@@ -56,7 +58,8 @@ updateTick dt world =
     let integrateAll dt bodies one = foldl (integrate dt) one bodies
         updateMass e m = {e | mass <- m}
         bodies = mapAllBut (integrateAll dt) (map .mass world.bodies)
-    in { world | bodies <- map2 updateMass world.bodies bodies}
+        zoom' = 1 - ((sin (world.time / 1000)) / 20)
+    in { world | bodies <- map2 updateMass world.bodies bodies, zoom <- zoom', time <- world.time + dt}
 
 updateMove arrows world = 
     let (s :: rest) = world.bodies
@@ -73,16 +76,14 @@ updateMove arrows world =
 
 displayBody {mass,body} =
     case body of
-        Ship {heading} -> Debug.trace "ship" <|
-            move (mass.x, mass.y) <| rotate (degrees heading) <|
-            group [rotate (degrees -30) (outlined (solid white) (ngon 3 25)), outlined (solid white) (rect 3 25)]
-        Planet {r} -> Debug.trace "planet" <|
-            move (mass.x, mass.y) <| outlined (solid white) (circle r)
+        Ship {heading} -> move (mass.x, mass.y) <| rotate (degrees heading)
+                                                <| group [rotate (degrees -30) (outlined (solid white) (ngon 3 25)), outlined (solid white) (rect 3 25)]
+        Planet {r} -> move (mass.x, mass.y) <| outlined (solid white) (circle r)
 
 display world =
     let (w',h') = (toFloat world.view.w, toFloat world.view.h)
         sky = [filled black (rect w' h')]
-        bodies = sky ++ (map displayBody world.bodies)
+        bodies = sky ++ [groupTransform (Transform2D.scale world.zoom) (map displayBody world.bodies)]
     in collage world.view.w world.view.h bodies
 
 -- Signals
