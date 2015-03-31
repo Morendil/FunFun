@@ -14,7 +14,8 @@ import Generic (..)
 
 -- Model
 
-type alias Mass = {x:Float,y:Float,vx:Float,vy:Float,m:Float}
+type alias Mass = {pos:Vector,vel:Vector,m:Float}
+type alias Vector = (Float,Float)
 type Body = Ship {heading: Float} | Planet {r:Float}
 
 start viewport = case viewport of
@@ -22,9 +23,9 @@ start viewport = case viewport of
         view = {w = w, h = h},
         zoom = 1.0,
         time = 0,
-        bodies = [{mass = {x = 0, y = 0, vx =0, vy = 0.06, m=0.001}, body = Ship {heading=0}},
-                  {mass = {x = -150, y = 0, vx =0, vy = 0, m=1},     body = Planet {r = 70}},
-                  {mass = {x = -80, y = 80, vx =0.05, vy = -0.05, m=0.01},   body = Planet {r = 7}}]
+        bodies = [{mass = {pos=(0,0),    vx =0, vy = 0.06, m=0.001},    body = Ship {heading=0}},
+                  {mass = {pos=(-150,0), vx =0, vy = 0, m=1},           body = Planet {r = 70}},
+                  {mass = {pos=(-80,80), vx =0.05, vy = -0.05, m=0.01}, body = Planet {r = 7}}]
     }
 
 -- Update
@@ -41,15 +42,25 @@ updateViewport (w,h) world =
         v' = { wv | w <- w, h <- h}
     in {world | view <- v'}
 
+
+norm (x,y) = x^2+y^2
+
+mapT f (x1,y1) (x2,y2) = (f x1 x2, f y1 y2)
+mapS f r (x,y) = (f r x, f r y)
+add = mapT (+)
+mul = mapT (*)
+sub = mapT (-)
+div = mapT (/)
+mulS = mapS (*)
+
 integrate dt object1 object2 =
-    let xx = (object1.x-object2.x)
-        yy = (object1.y-object2.y)
-        d2 = xx^2 + yy^2
-        ax = object1.m * xx / (sqrt(d2) * d2)
-        ay = object1.m * yy / (sqrt(d2) * d2)
+    let vec = object1.pos `sub` object2.pos
+        d2 = norm vec
+        acc = (object1.m / (sqrt(d2) * d2)) `mulS` vec
+        (ax,ay) = acc
+        vel = (object2.vx, object2.vy)
     in { object2 |
-            x <- object2.x + dt * object2.vx + (ax * dt*dt),
-            y <- object2.y + dt * object2.vy + (ay * dt*dt),
+            pos <- object2.pos `add` (dt `mulS` vel) `add` ((dt * dt) `mulS` acc),
             vx <- object2.vx + dt * ax,
             vy <- object2.vy + dt * ay
         }
@@ -76,9 +87,9 @@ updateMove arrows world =
 
 displayBody {mass,body} =
     case body of
-        Ship {heading} -> move (mass.x, mass.y) <| rotate (degrees heading)
+        Ship {heading} -> move mass.pos <| rotate (degrees heading)
                                                 <| group [rotate (degrees -30) (outlined (solid white) (ngon 3 25)), outlined (solid white) (rect 3 25)]
-        Planet {r} -> move (mass.x, mass.y) <| outlined (solid white) (circle r)
+        Planet {r} -> move mass.pos <| outlined (solid white) (circle r)
 
 display world =
     let (w',h') = (toFloat world.view.w, toFloat world.view.h)
