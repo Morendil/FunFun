@@ -23,9 +23,9 @@ start viewport = case viewport of
         view = {w = w, h = h},
         zoom = 1.0,
         time = 0,
-        bodies = [{mass = {pos=(0,0),    vx =0, vy = 0.06, m=0.001},    body = Ship {heading=0}},
-                  {mass = {pos=(-150,0), vx =0, vy = 0, m=1},           body = Planet {r = 70}},
-                  {mass = {pos=(-80,80), vx =0.05, vy = -0.05, m=0.01}, body = Planet {r = 7}}]
+        bodies = [{mass = {pos=(0,0),    vel=(0,0.06),      m=0.001}, body = Ship {heading=0}},
+                  {mass = {pos=(-150,0), vel=(0,0),         m=1},     body = Planet {r = 70}},
+                  {mass = {pos=(-80,80), vel=(0.05,-0.05),  m=0.01},  body = Planet {r = 7}}]
     }
 
 -- Update
@@ -42,7 +42,6 @@ updateViewport (w,h) world =
         v' = { wv | w <- w, h <- h}
     in {world | view <- v'}
 
-
 norm (x,y) = x^2+y^2
 
 mapT f (x1,y1) (x2,y2) = (f x1 x2, f y1 y2)
@@ -57,12 +56,9 @@ integrate dt object1 object2 =
     let vec = object1.pos `sub` object2.pos
         d2 = norm vec
         acc = (object1.m / (sqrt(d2) * d2)) `mulS` vec
-        (ax,ay) = acc
-        vel = (object2.vx, object2.vy)
     in { object2 |
-            pos <- object2.pos `add` (dt `mulS` vel) `add` ((dt * dt) `mulS` acc),
-            vx <- object2.vx + dt * ax,
-            vy <- object2.vy + dt * ay
+            pos <- object2.pos `add` (dt `mulS` object2.vel) `add` ((dt * dt) `mulS` acc),
+            vel <- object2.vel `add` (dt `mulS` acc)
         }
 
 updateTick dt world =
@@ -75,10 +71,10 @@ updateTick dt world =
 updateMove arrows world = 
     let (s :: rest) = world.bodies
         (Ship body) = s.body
+        acc = ((toFloat arrows.y) * sin (degrees body.heading) * 0.001, (toFloat arrows.y) * cos (degrees body.heading) * 0.001)
         smass = s.mass
         body' = {body | heading <- body.heading-(toFloat arrows.x)*5}
-        mass' = {smass | vx <- s.mass.vx - (toFloat arrows.y) * sin (degrees body.heading) * 0.001,
-                        vy <- s.mass.vy + (toFloat arrows.y) * cos (degrees body.heading) * 0.001}
+        mass' = {smass | vel <- s.mass.vel `add` acc }
         s' = {s | body <- Ship body',
                   mass <- mass'}
     in {world | bodies <- s' :: rest}
