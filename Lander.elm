@@ -42,7 +42,7 @@ updateViewport (w,h) world =
         v' = { wv | w <- w, h <- h}
     in {world | view <- v'}
 
-norm (x,y) = x^2+y^2
+norm2 (x,y) = x^2+y^2
 
 mapT f (x1,y1) (x2,y2) = (f x1 x2, f y1 y2)
 mapS f r (x,y) = (f r x, f r y)
@@ -54,7 +54,7 @@ mulS = mapS (*)
 
 integrate dt object1 object2 =
     let vec = object1.pos `sub` object2.pos
-        d2 = norm vec
+        d2 = norm2 vec
         acc = (object1.m / (sqrt(d2) * d2)) `mulS` vec
     in { object2 |
             pos <- object2.pos `add` (dt `mulS` object2.vel) `add` ((dt * dt) `mulS` acc),
