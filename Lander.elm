@@ -14,15 +14,16 @@ import Generic (..)
 
 -- Model
 
+type alias World = {view : {w:Int,h:Int},zoom:Float,bodies:List {mass:Mass,body:Body}}
 type alias Mass = {pos:Vector,vel:Vector,m:Float}
 type alias Vector = (Float,Float)
 type Body = Ship {heading: Float} | Planet {r:Float}
 
+start : Update -> World
 start viewport = case viewport of
     Viewport (w,h) -> {
         view = {w = w, h = h},
         zoom = 1.0,
-        time = 0,
         bodies = [{mass = {pos=(0,0),    vel=(0,0.06),      m=0.001}, body = Ship {heading=0}},
                   {mass = {pos=(-150,0), vel=(0,0),         m=1},     body = Planet {r = 70}},
                   {mass = {pos=(-80,80), vel=(0.05,-0.05),  m=0.01},  body = Planet {r = 7}}]
@@ -52,6 +53,9 @@ sub = mapT (-)
 div = mapT (/)
 mulS = mapS (*)
 
+distance m1 m2 =
+    sqrt (norm2 (m1.pos `sub` m2.pos))
+
 integrate dt object1 object2 =
     let vec = object1.pos `sub` object2.pos
         d2 = norm2 vec
@@ -61,12 +65,20 @@ integrate dt object1 object2 =
             vel <- object2.vel `add` (dt `mulS` acc)
         }
 
+updateZoom dt world =
+    let (s :: p :: rest) = world.bodies
+        vp = Debug.watch "vp" <| (world.view.w,world.view.h)
+        fov = (toFloat (min world.view.w world.view.h))/2
+        span = distance s.mass p.mass
+        z = Debug.watch "zoom" <| fov/span
+    in min 1.0 z
+
 updateTick dt world =
     let integrateAll dt bodies one = foldl (integrate dt) one bodies
         updateMass e m = {e | mass <- m}
         bodies = mapAllBut (integrateAll dt) (map .mass world.bodies)
-        zoom' = 1 - ((sin (world.time / 1000)) / 20)
-    in { world | bodies <- map2 updateMass world.bodies bodies, zoom <- zoom', time <- world.time + dt}
+        zoom' = ((world.zoom * 99) + (updateZoom dt world)) / 100
+    in { world | bodies <- map2 updateMass world.bodies bodies, zoom <- min world.zoom zoom'}
 
 updateMove arrows world = 
     let (s :: rest) = world.bodies
