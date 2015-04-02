@@ -14,15 +14,14 @@ import Generic (..)
 
 -- Model
 
-type alias World = {view : {w:Int,h:Int},zoom:Float,bodies:List {mass:Mass,body:Body}}
 type alias Mass = {pos:Vector,vel:Vector,m:Float}
 type alias Vector = (Float,Float)
 type Body = Ship {heading: Float} | Planet {r:Float}
 
-start : Update -> World
 start viewport = case viewport of
     Viewport (w,h) -> {
         view = {w = w, h = h},
+        pan = {x = 0, y = 0},
         zoom = 1.0,
         bodies = [{mass = {pos=(0,0),    vel=(0,0.06),      m=0.001}, body = Ship {heading=0}},
                   {mass = {pos=(-150,0), vel=(0,0),         m=1},     body = Planet {r = 70}},
@@ -70,15 +69,22 @@ updateZoom dt world =
         vp = Debug.watch "vp" <| (world.view.w,world.view.h)
         fov = (toFloat (min world.view.w world.view.h))/2
         span = distance s.mass p.mass
-        z = Debug.watch "zoom" <| fov/span
-    in min 1.0 z
+        z = fov/span
+    in min 1 z
+
+updatePan world = 
+    let (s :: rest) = world.bodies
+        (sx,sy) = Debug.watch "s" s.mass.pos
+        ymax = ((toFloat world.view.h) - 30) / 2 / world.zoom
+        xmax = ((toFloat world.view.w) - 30) / 2 / world.zoom
+    in {x=if sx > xmax then xmax-sx else if sx+xmax<0 then -sx-xmax else 0,y= if sy > ymax then ymax-sy else if sy+ymax<0 then -sy-ymax else 0}
 
 updateTick dt world =
     let integrateAll dt bodies one = foldl (integrate dt) one bodies
         updateMass e m = {e | mass <- m}
         bodies = mapAllBut (integrateAll dt) (map .mass world.bodies)
-        zoom' = ((world.zoom * 99) + (updateZoom dt world)) / 100
-    in { world | bodies <- map2 updateMass world.bodies bodies, zoom <- min world.zoom zoom'}
+        zoom' = updateZoom dt world
+    in { world | bodies <- map2 updateMass world.bodies bodies, zoom <- min world.zoom zoom', pan <- updatePan world}
 
 updateMove arrows world = 
     let (s :: rest) = world.bodies
@@ -102,7 +108,8 @@ displayBody {mass,body} =
 display world =
     let (w',h') = (toFloat world.view.w, toFloat world.view.h)
         sky = [filled black (rect w' h')]
-        bodies = sky ++ [groupTransform (Transform2D.scale world.zoom) (map displayBody world.bodies)]
+        transform = Transform2D.multiply (Transform2D.translation world.pan.x world.pan.y) (Transform2D.scale world.zoom)
+        bodies = sky ++ [groupTransform transform (map displayBody world.bodies)]
     in collage world.view.w world.view.h bodies
 
 -- Signals
