@@ -70,7 +70,7 @@ updateZoom dt world =
         fov = (toFloat (min world.view.w world.view.h))/2
         span = distance s.mass p.mass
         z = fov/span
-    in min 1 z
+    in max 0.4 (min 1 z)
 
 updatePan world = 
     let (s :: rest) = world.bodies
@@ -89,7 +89,7 @@ updateTick dt world =
 updateMove arrows world = 
     let (s :: rest) = world.bodies
         (Ship body) = s.body
-        acc = ((toFloat arrows.y) * sin (degrees body.heading) * 0.001, (toFloat arrows.y) * cos (degrees body.heading) * 0.001)
+        acc = (-(toFloat arrows.y) * sin (degrees body.heading) * 0.001, (toFloat arrows.y) * cos (degrees body.heading) * 0.001)
         smass = s.mass
         body' = {body | heading <- body.heading-(toFloat arrows.x)*5}
         mass' = {smass | vel <- s.mass.vel `add` acc }
