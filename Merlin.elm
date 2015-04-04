@@ -1,3 +1,5 @@
+module Merlin where
+
 import Graphics.Collage (..)
 import Color (..)
 
@@ -10,6 +12,8 @@ import Window
 start (w,h) =
     {view={w=w,h=h}}
 
+gridSize (w,h) = ((min w h)*2/3,(min w h)*2/3)
+
 -- Update
 
 update (w,h) world =
@@ -20,7 +24,10 @@ update (w,h) world =
 -- Display
 
 display world =
-    collage world.view.w world.view.h <| [filled black <| rect (toFloat world.view.w) (toFloat world.view.h)]
+    let backdrop = filled black <| rect (toFloat world.view.w) (toFloat world.view.h)
+        (w,h) = gridSize (toFloat world.view.w,toFloat world.view.h)
+        grid = outlined (solid white) (rect w h)
+    in collage world.view.w world.view.h <| [backdrop,grid]
 
 -- Signals
 
