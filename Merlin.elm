@@ -39,8 +39,11 @@ update u world =
         Click square -> updateClick square world
 
 updateClick (row,col) world =
-    let which = ((row-1)*size)+col-1
-        offsets = List.filter (\cand -> cand >= 0 && cand < size^2) (List.map (\ offset -> which+offset) [-5,-1,0,1,5])
+    let which (row,col) = ((row-1)*size)+col-1
+        ok n = n >= 1 && n <= size
+        allOffsets = List.map (\(x,y) -> (row+x,col+y)) [(-1,0),(0,-1),(0,0),(0,1),(1,0)]
+        coordOffsets = List.filter (\ (x,y) -> ok x && ok y) allOffsets
+        offsets = List.map which coordOffsets
         toggle which states =
             let before = List.take which states
                 after = List.drop which states
