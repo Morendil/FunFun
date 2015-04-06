@@ -1,15 +1,17 @@
 module Merlin where
 
+import Graphics.Input (..)
 import Graphics.Element (..)
 import Graphics.Collage (..)
 import Color (..)
 
 import List
-
 import Mouse
+import Window
 import Signal
 import Signal.Extra
-import Window
+
+import Debug
 
 -- Model
 
@@ -29,11 +31,19 @@ divide n side =
 
 -- Update
 
-type Update = Viewport (Int, Int)
+type Update = Viewport (Int, Int) | Click (Int,Int)
 
 update u world =
     case u of
         Viewport vp -> updateViewport vp world
+        Click square -> updateClick square world
+
+updateClick (row,col) world =
+    let which = ((row-1)*size)+col-1
+        before = List.take which world.states
+        after = List.drop which world.states
+        states' = before ++ (not (List.head after) :: (List.tail after))
+    in {world | states <- states'}
 
 updateViewport (w,h) world =
     let view = world.view
@@ -48,7 +58,8 @@ displaySquare row col world =
         frnd = toFloat << round
         state = List.head (List.drop ((((floor row)-1)*size)+(floor col)-1) world.states)
         style = if state then filled green else outlined (solid white)
-    in collage (floor small) (floor small) <| [style (rect small small)]
+        disp = collage (floor small) (floor small) <| [style (rect small small)]
+    in clickable (Signal.send clicks (row,col)) disp
 
 rowOfSquares world row =
     let squares = List.map (\col -> displaySquare row col world) [1..size]
@@ -70,8 +81,10 @@ display world =
 
 -- Signals
 
+clicks = Signal.channel (0,0)
+squareClicks = Signal.map Click (Signal.subscribe clicks)
 dimensions = Signal.map Viewport (Window.dimensions)
-inputs = Signal.mergeMany [dimensions]
+inputs = Signal.mergeMany [dimensions,squareClicks]
 
 main =
     let states = Signal.Extra.foldp' update start inputs
