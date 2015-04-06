@@ -40,10 +40,12 @@ update u world =
 
 updateClick (row,col) world =
     let which = ((row-1)*size)+col-1
-        before = List.take which world.states
-        after = List.drop which world.states
-        states' = before ++ (not (List.head after) :: (List.tail after))
-    in {world | states <- states'}
+        offsets = List.filter (\cand -> cand >= 0 && cand < size^2) (List.map (\ offset -> which+offset) [-5,-1,0,1,5])
+        toggle which states =
+            let before = List.take which states
+                after = List.drop which states
+            in before ++ (not (List.head after) :: (List.tail after))
+    in {world | states <- List.foldl toggle world.states offsets}
 
 updateViewport (w,h) world =
     let view = world.view
