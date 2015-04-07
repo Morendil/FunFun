@@ -1,5 +1,6 @@
 module Merlin where
 
+import Text (..)
 import Graphics.Input (..)
 import Graphics.Element (..)
 import Graphics.Collage (..)
@@ -76,13 +77,19 @@ makeSquares world =
         between = spacer 2 2
     in flow down (List.intersperse between rows)
 
+winStyle = { typeface = [], height = Just 24, color = white, bold = True, italic = False, line = Nothing}
+
+win world =
+    if List.all (not) world.states then [container world.view.w world.view.h middle <| centered <| style winStyle <| fromString "You Win!"]
+    else []
+
 display world =
     let backdrop = filled black <| rect (toFloat world.view.w) (toFloat world.view.h)
         side = gridSize (toFloat world.view.w,toFloat world.view.h)
         grid = outlined (solid white) (rect side side)
         table = collage world.view.w world.view.h [backdrop,grid]
         squares = List.concatMap (\row -> List.map (\col -> displaySquare row col world) [1..size]) [1..size]
-    in layers [table, container world.view.w world.view.h middle (makeSquares world)]
+    in layers <| [table, container world.view.w world.view.h middle (makeSquares world)] ++ win world
 
 -- Signals
 
