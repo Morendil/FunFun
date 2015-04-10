@@ -6,6 +6,8 @@ import Graphics.Collage (..)
 import List (..)
 import Color (..)
 
+import Random
+
 import Window
 import Signal
 import Signal.Extra
@@ -18,7 +20,13 @@ size = 15
 
 start u =
     case u of
-        Viewport (w,h) -> {view={w=w,h=h}}
+        Viewport (w,h) ->
+        let (states, seed) = Random.generate (Random.list (size^2) (Random.int 1 4)) (Random.initialSeed 0)
+        in {
+            view={w=w,h=h},
+            states = states,
+            seed = seed
+        }
 
 -- Update
 
@@ -29,7 +37,11 @@ update u world = world
 -- Display
 
 displaySquare row col world =
-    let icon = collage 20 20 <| [filled blue (rect 20 20)]
+    let index = (row-1)*size + (col-1)
+        state = head (drop index world.states)
+        color state = head (drop (state-1) [green,blue,red,white])
+        shape state = head (drop (state-1) [circle 10,ngon 3 10,rect 20 20,ngon 5 10])
+        icon = collage 20 20 <| [filled (color state) (shape state)]
     in clickable (Signal.send locations (row,col)) icon
 
 rowOfSquares world row =
