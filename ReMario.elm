@@ -47,12 +47,20 @@ hair common = (common.y,common.y+2)
 
 start_mario = { x = 0 , y = 0 , w = 16 , h = 26 , vx = 0 , vy = 0 , dir = Right }
 
+pink = rgb 150 10 50
+
 start_state : World
-start_state = [
+start_state = [    
     Player start_mario [] [],
-    Platform { x = 40 , y = 0 , w = 20 , h = 20 , c = red , t = 0, vx = 0, vy = 0} nothing,
+    Platform { x = -55 , y = 80 , w = 20 , h = 20 , c = red , t = 0, vx = 0, vy = 0} nothing,
     Platform { x = -80 , y = 60 , w = 20 , h = 20 , c = red , t = 0, vx = 0, vy = 0} nothing,
-    Cloud { x = -60 , y = 26 , w = 20 , h = 4 , c = blue , t = 0, vx = 0, vy = 0} sway,
+    Cloud { x = 0 , y = 70 , w = 20 , h = 20 , c = red , t = 0, vx = 0, vy = 0} sway,
+    Platform { x = -80 , y = 60 , w = 20 , h = 20 , c = red , t = 0, vx = 0, vy = 0} nothing,
+    Platform { x = 40 , y = 0 , w = 20 , h = 20 , c = blue , t = 0, vx = 0, vy = 0} nothing,
+    Platform { x = 40 , y = 160 , w = 20 , h = 20 , c = green , t = 0, vx = 0, vy = 0} nothing,
+
+    Cloud { x = -40 , y = 120 , w = 20 , h = 20 , c = purple , t = 0, vx = 0, vy = 0} lift,
+    Platform { x = -60 , y = 26 , w = 20 , h = 4 , c = blue , t = 0, vx = 0, vy = 0} change,
     -- the floor
     Platform { x = 0 , y = -50 , w = 9999 , h = 50 , c = rgb 74 167 43 , t = 0, vx = 0, vy = 0} nothing,
     Sky ]
@@ -82,7 +90,13 @@ step u world =
     _ -> world
 
 nothing _ _ sprite = sprite
+
 sway (dt,_) world sprite = {sprite | t <- sprite.t+dt, x <- sprite.x + dt * sprite.vx, vx <- sin(sprite.t/50)}
+lift (dt,_) world sprite = {sprite | t <- sprite.t+dt, y <- sprite.y + dt * sprite.vy, vy <- sin(sprite.t/50)}
+
+change fff world sprite =
+  let t = Debug.watch "time" sprite.t
+  in if sprite.t > 100 then lift fff world sprite else sway fff world sprite
 
 stepOne : (Float, Keys) -> World -> Sprite -> Sprite
 stepOne move world sprite = case sprite of
@@ -102,8 +116,8 @@ stepPlayer (dt, keys) world mario =
         |> iterate (physics (dt/n) world) n
 
 jump : Keys -> BasicSprite -> BasicSprite
-jump keys mario =
-    if keys.y > 0 && mario.vy == 0 then { mario | vy <- 4.0 } else mario
+jump keys mario=
+    if keys.y > 0 && mario.vy == 0 then { mario | vy <- 4.0} else mario
 
 walk : Keys -> BasicSprite -> BasicSprite
 walk keys mario =
@@ -134,11 +148,17 @@ physics dt world mario =
             Platform pl _ -> dt * pl.vx
             Cloud pl _ -> dt * pl.vx
             _ -> 0
+        extray = if (isEmpty support) || (mario.vy /= 0) then 0 else
+          case head support of
+            Player pl _ _ -> dt * pl.vy
+            Platform pl _ -> dt * pl.vy
+            Cloud pl _ -> dt * pl.vy
+            _ -> 0
         blockers = filter (blocks {mario | x <- newx + extrax}) world
     in    
     { mario |
         x <- if (isEmpty blockers) then newx+extrax else mario.x,
-        y <- if (isEmpty support) then newy else mario.y,
+        y <- if (isEmpty support) then newy else mario.y+extray,
         vy <- newvy
     }
 
@@ -151,7 +171,7 @@ display (w',h') world =
 
 displayOne : (Float, Float) -> Sprite -> Form
 displayOne dims sprite = case sprite of
-  Player shape _ _ -> Debug.trace "mario" <| displayPlayer dims "mario" (Debug.watch "mario" shape)
+  Player shape _ _ -> Debug.trace "mario" <| displayPlayer dims "ghost" (Debug.watch "mario" shape)
   Ghost shape _ _ -> displayPlayer dims "ghost" shape
   Platform shape _ -> displayPlatform dims shape
   Cloud shape _ -> displayPlatform dims shape
