@@ -10,6 +10,7 @@
     "dependencies": {
         "elm-lang/core": "1.1.1 <= v < 2.0.0",
 	"Apanatshka/elm-signal-extra" : "3.1.0 <= v < 4.0.0",
-    "TheSeamau5/elm-check" : "2.0.3 <= v < 3.0.0"
+	"TheSeamau5/elm-check" : "2.0.3 <= v < 3.0.0",
+	"jwmerrill/elm-animation-frame" : "1.0.2 <= v < 2.0.0"
     }
 }
