@@ -32,10 +32,10 @@ start u =
             time = 0
         }
 
-unsupported states row col =
+holes states row col =
     let index row col = (row-1)*size + (col-1)
         state index = head (drop index states)
-    in any (\x -> x == 0) (map (\row' -> state (index row' col)) [(row+1)..size])
+    in length <| filter (\x -> x == 0) (map (\row' -> state (index row' col)) [(row+1)..size])
 
 -- Update
 
@@ -62,9 +62,11 @@ displayIcon world row col =
         state = head (drop index world.states)
         color state = head (drop (state-1) [green,blue,red,white])
         shape state = head (drop (state-1) [circle 10,ngon 3 10,rect 20 20,ngon 5 10])
-        tumble = unsupported world.states row col
+        tumble = (holes world.states row col) > 0
+        to_y = y - (toFloat (holes world.states row col))*22 + 2
+        now_y = y-(if tumble then world.time/10 else 0)
     in if state == 0 then toForm empty
-       else move (x,y-(if tumble then world.time/10 else 0)) <| filled (color state) (shape state)
+       else move (x,max to_y now_y) <| filled (color state) (shape state)
 
 rowOfSquares world row =
     let squares = map (displaySquare world row) [1..size]
