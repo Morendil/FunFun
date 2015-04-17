@@ -28,6 +28,7 @@ start u =
         in {
             view={w=w,h=h},
             states = states,
+            selected = -1,
             seed = seed,
             time = 0
         }
@@ -45,8 +46,7 @@ update u world =
    case u of
         Click (row,col) ->
             let index = (row-1)*size + (col-1)
-                states' = take index world.states ++ (0 :: drop (index+1) world.states)
-            in {world | states <- states', time <- 0}
+            in {world | time <- 0, selected <- index}
         Frame dt -> {world | time <- world.time + dt}
         _ -> world
 
@@ -65,7 +65,7 @@ displayIcon world row col =
         tumble = (holes world.states row col) > 0
         to_y = y - (toFloat (holes world.states row col))*22 + 2
         now_y = y-(if tumble then world.time/10 else 0)
-    in if state == 0 then toForm empty
+    in if world.selected == index then move (x,y+2) <| toForm <| collage 20 20 [filled (color state) (shape state), outlined (solid white) <| rect 20 20]
        else move (x,max to_y now_y) <| filled (color state) (shape state)
 
 rowOfSquares world row =
