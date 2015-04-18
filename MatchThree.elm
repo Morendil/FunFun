@@ -52,35 +52,42 @@ update u world =
 
 -- Display
 
+iconSize = 25
+iconSpc = 3
+iconTotal = iconSize+iconSpc
+iconRadius = iconSize/2
+
 displaySquare world row col  =
-    clickable (Signal.send locations (row,col)) (collage 20 20 [])
+    clickable (Signal.send locations (row,col)) (collage iconSize iconSize [])
 
 displayIcon world row col =
     let index = (row-1)*size + (col-1)
-        x = toFloat (10+(col-1)*22)-((size*22-2)/2)
-        y = ((size*22-2)/2) - (toFloat (10+(row-1)*22))
+        x =  (toFloat col-1)*iconTotal + iconRadius - (size*iconTotal-iconSpc)/2
+        y = -(toFloat row-1)*iconTotal - iconRadius + (size*iconTotal-iconSpc)/2 - iconSpc
         state = head (drop index world.states)
         color state = head (drop (state-1) [green,blue,red,white])
-        shape state = head (drop (state-1) [circle 10,ngon 3 10,rect 20 20,ngon 5 10])
+        shape state = head (drop (state-1) [circle iconRadius,ngon 3 iconRadius,rect iconSize iconSize,ngon 5 iconRadius])
         tumble = (holes world.states row col) > 0
-        to_y = y - (toFloat (holes world.states row col))*22 + 2
+        to_y = y - (toFloat (holes world.states row col))*iconTotal + iconSpc
         now_y = y-(if tumble then world.time/10 else 0)
-    in if world.selected == index then move (x,y+2) <| toForm <| collage 20 20 [filled (color state) (shape state), outlined (solid white) <| rect 20 20]
-       else move (x,max to_y now_y) <| filled (color state) (shape state)
+        icon = filled (color state) (shape state)
+        frame = outlined (solid white) <| rect iconSize iconSize
+    in if world.selected == index then move (x,y+iconSpc) <| toForm <| collage iconSize iconSize [icon, frame]
+       else move (x,max to_y now_y) <| icon
 
 rowOfSquares world row =
     let squares = map (displaySquare world row) [1..size]
-        between = spacer 2 2
+        between = spacer iconSpc iconSpc
     in flow right (intersperse between squares)
 
 makeSquares world =
     let rows = map (rowOfSquares world) [1..size]
-        between = spacer 2 2
+        between = spacer iconSpc iconSpc
     in flow down (intersperse between rows)
 
 makeIcons world =
     let rowOfIcons world row = map (displayIcon world row) [1..size]
-    in  collage (size*22-2) (size*22-2) (concatMap (rowOfIcons world) [1..size])
+    in  collage (size*iconTotal-iconSpc) (size*iconTotal-iconSpc) (concatMap (rowOfIcons world) [1..size])
 
 display world =
     let (w',h') = (toFloat world.view.w, toFloat world.view.h)
