@@ -38,6 +38,16 @@ holes states row col =
         state index = head (drop index states)
     in length <| filter (\x -> x == 0) (map (\row' -> state (index row' col)) [(row+1)..size])
 
+asRuns list = reverse <| asRuns' [] list
+
+asRuns' runs list =
+    case list of
+        [] -> runs
+        x :: xs -> case runs of
+            [] -> asRuns' [(1,x)] xs
+            (n,x') :: rs -> if x == x' then asRuns' ((n+1,x')::rs) xs
+                                       else asRuns' ((1,x)::runs) xs
+
 -- Update
 
 type Update = Viewport (Int, Int) | Click (Int,Int) | Frame Time
