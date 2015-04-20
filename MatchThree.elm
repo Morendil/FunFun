@@ -17,6 +17,9 @@ import Signal.Extra
 
 import Debug
 
+-- App imports
+import Generic (..)
+
 -- Model
 
 size = 15
@@ -33,12 +36,24 @@ start u =
             time = 0
         }
 
+index row col = (row-1)*size + (col-1)
+
 holes states row col =
-    let index row col = (row-1)*size + (col-1)
-        state index = head (drop index states)
+    let state index = head (drop index states)
     in length <| filter (\x -> x == 0) (map (\row' -> state (index row' col)) [(row+1)..size])
 
-asRuns list = reverse <| asRuns' [] list
+removeRuns states =
+    let rows = map (\row -> take size (drop (size*(row-1)) states)) [1..size]
+        runs = map asRuns rows
+        dropLongs aRuns = map (\ (n,x) -> if n >= 3 then (n,0) else (n,x)) aRuns
+    in concatMap runsToList (map dropLongs runs)
+
+runsToList runs =
+    case runs of
+        [] -> []
+        (n,x) :: rs -> (repeat n x) ++ (runsToList rs)
+
+asRuns list = reverse (asRuns' [] list)
 
 asRuns' runs list =
     case list of
@@ -54,10 +69,10 @@ type Update = Viewport (Int, Int) | Click (Int,Int) | Frame Time
 
 update u world =
    case u of
-        Click (row,col) ->
-            let index = (row-1)*size + (col-1)
-            in {world | time <- 0, selected <- index}
-        Frame dt -> {world | time <- world.time + dt}
+        Click (row,col) -> {world | time <- 0, selected <- index row col}
+        Frame dt ->
+            let states' = removeRuns world.states
+            in {world | time <- world.time + dt, states <- states'}
         _ -> world
 
 -- Display
@@ -71,19 +86,19 @@ displaySquare world row col  =
     clickable (Signal.send locations (row,col)) (collage iconSize iconSize [])
 
 displayIcon world row col =
-    let index = (row-1)*size + (col-1)
-        x =  (toFloat col-1)*iconTotal + iconRadius - (size*iconTotal-iconSpc)/2
+    let x =  (toFloat col-1)*iconTotal + iconRadius - (size*iconTotal-iconSpc)/2
         y = -(toFloat row-1)*iconTotal - iconRadius + (size*iconTotal-iconSpc)/2 - iconSpc
-        state = head (drop index world.states)
+        state = head (drop (index row col) world.states)
         color state = head (drop (state-1) [green,blue,red,white])
         shape state = head (drop (state-1) [circle iconRadius,ngon 3 iconRadius,rect iconSize iconSize,ngon 5 iconRadius])
         tumble = (holes world.states row col) > 0
         to_y = y - (toFloat (holes world.states row col))*iconTotal + iconSpc
-        now_y = y-(if tumble then world.time/10 else 0)
+        now_y = y-(if tumble then world.time/100 else 0)
         icon = filled (color state) (shape state)
         frame = outlined (solid white) <| rect iconSize iconSize
-    in if world.selected == index then move (x,y+iconSpc) <| toForm <| collage iconSize iconSize [icon, frame]
-       else move (x,max to_y now_y) <| icon
+    in if world.selected == index row col then move (x,y+iconSpc) <| toForm <| collage iconSize iconSize [icon, frame]
+       else if state > 0 then move (x,max to_y now_y) <| icon
+            else toForm empty
 
 rowOfSquares world row =
     let squares = map (displaySquare world row) [1..size]
