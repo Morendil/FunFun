@@ -35,6 +35,7 @@ start u =
             states = states,
             next = states,
             phase = Matching,
+            fallDuration = 0,
             selected = -1,
             seed = seed,
             time = 0
@@ -45,6 +46,9 @@ index row col = (row-1)*size + (col-1)
 holes states row col =
     let state index = head (drop index states)
     in length <| filter (\x -> x == 0) (map (\row' -> state (index row' col)) [(row+1)..size])
+
+maxHoles states =
+    maximum (map (holes states 0) [1..size])
 
 removeRuns states =
     let rows = map (\row -> take size (drop (size*(row-1)) states)) [1..size]
@@ -71,6 +75,9 @@ asRuns' runs list =
 
 type Update = Viewport (Int, Int) | Click (Int,Int) | Frame Time
 
+burstDuration = 1000
+fallDurationPer = 500
+
 update u world =
    case u of
         Click (row,col) -> case world.phase of 
@@ -79,10 +86,15 @@ update u world =
         Frame dt -> case world.phase of 
             Matching ->
                 let states' = removeRuns world.states
-                in {world | time <- 0, next <- states', phase <- Burst}
+                    gone = Debug.watch "gone" <| maxHoles states'
+                in if gone > 0 then {world | time <- 0, next <- states', phase <- Burst, fallDuration <- toFloat gone * fallDurationPer}
+                    else {world | phase <- Steady}
             Burst ->
-                if world.time < 1000 then {world | time <- world.time + dt}
+                if world.time < burstDuration then {world | time <- world.time + dt}
                 else {world | time <- 0, states <- world.next, phase <- Fall}
+            Fall ->
+                if world.time < world.fallDuration then {world | time <- world.time + dt}
+                else {world | time <- 0, states <- world.next, phase <- Matching}
             _ -> world
         _ -> world
 
@@ -105,9 +117,16 @@ displayIcon world row col =
         shape state = head (drop (state-1) [circle iconRadius,ngon 3 iconRadius,rect iconSize iconSize,ngon 5 iconRadius])
         icon = filled (color state) (shape state)
         frame = outlined (solid white) <| rect iconSize iconSize
+        phase = Debug.watch "phase" world.phase
     in case world.phase of
         Burst ->
-            move (x,y+iconSpc) <| if next > 0 then icon else scale (1-(world.time/1000)) icon
+            move (x,y+iconSpc) <| if next > 0 then icon else scale (1-(world.time/burstDuration)) icon
+        Fall ->
+            let tumble = (holes world.states row col) > 0
+                to_y = y - (toFloat (holes world.states row col))*iconTotal + iconSpc
+                now_y = y-(if tumble then world.time*(y-to_y)/world.fallDuration else 0)
+            in if state > 0 then  move (x,max to_y now_y) <| icon
+               else move (x,y+iconSpc) <| toForm empty
         _ ->
             if state > 0 then move (x,y+iconSpc) <| icon
             else move (x,y+iconSpc) <| toForm empty
