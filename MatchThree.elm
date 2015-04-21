@@ -24,6 +24,8 @@ import Generic (..)
 
 size = 15
 
+type Phase = Steady | Matching | Burst | Fall | Swap
+
 start u =
     case u of
         Viewport (w,h) ->
@@ -31,6 +33,8 @@ start u =
         in {
             view={w=w,h=h},
             states = states,
+            next = states,
+            phase = Matching,
             selected = -1,
             seed = seed,
             time = 0
@@ -69,10 +73,17 @@ type Update = Viewport (Int, Int) | Click (Int,Int) | Frame Time
 
 update u world =
    case u of
-        Click (row,col) -> {world | time <- 0, selected <- index row col}
-        Frame dt ->
-            let states' = removeRuns world.states
-            in {world | time <- world.time + dt, states <- states'}
+        Click (row,col) -> case world.phase of 
+            Steady -> {world | time <- 0, selected <- index row col}
+            _ -> world
+        Frame dt -> case world.phase of 
+            Matching ->
+                let states' = removeRuns world.states
+                in {world | time <- 0, next <- states', phase <- Burst}
+            Burst ->
+                if world.time < 1000 then {world | time <- world.time + dt}
+                else {world | time <- 0, states <- world.next, phase <- Fall}
+            _ -> world
         _ -> world
 
 -- Display
@@ -89,16 +100,17 @@ displayIcon world row col =
     let x =  (toFloat col-1)*iconTotal + iconRadius - (size*iconTotal-iconSpc)/2
         y = -(toFloat row-1)*iconTotal - iconRadius + (size*iconTotal-iconSpc)/2 - iconSpc
         state = head (drop (index row col) world.states)
+        next = head (drop (index row col) world.next)
         color state = head (drop (state-1) [green,blue,red,white])
         shape state = head (drop (state-1) [circle iconRadius,ngon 3 iconRadius,rect iconSize iconSize,ngon 5 iconRadius])
-        tumble = (holes world.states row col) > 0
-        to_y = y - (toFloat (holes world.states row col))*iconTotal + iconSpc
-        now_y = y-(if tumble then world.time/100 else 0)
         icon = filled (color state) (shape state)
         frame = outlined (solid white) <| rect iconSize iconSize
-    in if world.selected == index row col then move (x,y+iconSpc) <| toForm <| collage iconSize iconSize [icon, frame]
-       else if state > 0 then move (x,max to_y now_y) <| icon
-            else toForm empty
+    in case world.phase of
+        Burst ->
+            move (x,y+iconSpc) <| if next > 0 then icon else scale (1-(world.time/1000)) icon
+        _ ->
+            if state > 0 then move (x,y+iconSpc) <| icon
+            else move (x,y+iconSpc) <| toForm empty
 
 rowOfSquares world row =
     let squares = map (displaySquare world row) [1..size]
