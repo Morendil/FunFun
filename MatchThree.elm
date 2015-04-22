@@ -35,7 +35,6 @@ start u =
             states = states,
             next = states,
             phase = Matching,
-            fallDuration = 0,
             selected = -1,
             seed = seed,
             time = 0
@@ -47,14 +46,32 @@ holes states row col =
     let state index = head (drop index states)
     in length <| filter (\x -> x == 0) (map (\row' -> state (index row' col)) [(row+1)..size])
 
-maxHoles states =
-    maximum (map (holes states 0) [1..size])
+transpose states =
+    let state index = head (drop index states)
+    in concatMap (\col -> map (\row -> state (index row col)) [1..size]) [1..size]
+
+cleanCol col =
+    let filled = filter (\x -> x > 0) col
+        len = length filled
+    in (repeat (size-len) 0) ++ filled
+
+clean states =
+    let byCols = transpose states
+        cols = map (\row -> take size (drop (size*(row-1)) byCols)) [1..size]
+    in transpose (concatMap cleanCol cols)
 
 removeRuns states =
     let rows = map (\row -> take size (drop (size*(row-1)) states)) [1..size]
         runs = map asRuns rows
         dropLongs aRuns = map (\ (n,x) -> if n >= 3 then (n,0) else (n,x)) aRuns
     in concatMap runsToList (map dropLongs runs)
+
+removeBoth states =
+    let vertically = transpose (removeRuns (transpose states))
+        horizontally = removeRuns states
+    in merge horizontally vertically
+
+merge = map2 (\x y -> if x == 0 || y == 0 then 0 else x)
 
 runsToList runs =
     case runs of
@@ -75,26 +92,28 @@ asRuns' runs list =
 
 type Update = Viewport (Int, Int) | Click (Int,Int) | Frame Time
 
-burstDuration = 1000
-fallDurationPer = 500
+burstDuration = 400
+fallDuration = 300
 
 update u world =
    case u of
         Click (row,col) -> case world.phase of 
             Steady -> {world | time <- 0, selected <- index row col}
             _ -> world
-        Frame dt -> case world.phase of 
+        Frame dt ->
+            let fps = Debug.watch "fps" <| floor (1000/dt)
+            in case world.phase of
             Matching ->
-                let states' = removeRuns world.states
-                    gone = Debug.watch "gone" <| maxHoles states'
-                in if gone > 0 then {world | time <- 0, next <- states', phase <- Burst, fallDuration <- toFloat gone * fallDurationPer}
+                let states' = removeBoth world.states
+                    matched = any identity (map (\col -> (holes states' 0 col) > (holes world.states 0 col)) [1..size])
+                in if matched then {world | time <- 0, next <- states', phase <- Burst}
                     else {world | phase <- Steady}
             Burst ->
                 if world.time < burstDuration then {world | time <- world.time + dt}
                 else {world | time <- 0, states <- world.next, phase <- Fall}
             Fall ->
-                if world.time < world.fallDuration then {world | time <- world.time + dt}
-                else {world | time <- 0, states <- world.next, phase <- Matching}
+                if world.time < fallDuration then {world | time <- world.time + dt}
+                else {world | time <- 0, states <- clean world.states, phase <- Matching}
             _ -> world
         _ -> world
 
@@ -120,11 +139,12 @@ displayIcon world row col =
         phase = Debug.watch "phase" world.phase
     in case world.phase of
         Burst ->
-            move (x,y+iconSpc) <| if next > 0 then icon else scale (1-(world.time/burstDuration)) icon
+            if state > 0 then move (x,y+iconSpc) <| if next > 0 then icon else scale (1-(world.time/burstDuration)) icon
+            else move (x,y+iconSpc) <| toForm empty
         Fall ->
             let tumble = (holes world.states row col) > 0
                 to_y = y - (toFloat (holes world.states row col))*iconTotal + iconSpc
-                now_y = y-(if tumble then world.time*(y-to_y)/world.fallDuration else 0)
+                now_y = y-(if tumble then world.time*(y-to_y)/fallDuration else 0)
             in if state > 0 then  move (x,max to_y now_y) <| icon
                else move (x,y+iconSpc) <| toForm empty
         _ ->
