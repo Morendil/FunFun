@@ -78,7 +78,12 @@ merge = map2 (\x y -> if x == 0 || y == 0 then 0 else x)
 swap (r_one,c_one) (r_two,c_two) states =
     let i_one = min (index r_one c_one) (index r_two c_two)
         i_two = max (index r_one c_one) (index r_two c_two)
-    in states
+        start = take i_one states
+        middle = take (i_two-i_one-1) (drop (i_one+1) states)
+        end = drop (i_two+1) states
+        one = head (drop i_one states)
+        two = head (drop i_two states)
+    in start ++ (two :: middle) ++ (one :: end)
 
 runsToList runs =
     case runs of
@@ -108,10 +113,10 @@ update u world =
         Click (row,col) -> case world.phase of 
             Steady ->
                 let (srow,scol) = world.selected
-                   in if | world.selected ==  (-1,-1) -> {world | selected <- (row,col)}
-                         | world.selected == (row,col) -> {world | selected <- (-1,-1)}
-                         | ((abs (srow-row))+(abs (scol-col))) == 1 -> {world | time <- 0, phase <- Swap, swapWith <- (row,col)}
-                         | otherwise -> world
+                    state = head (drop (index row col) world.states)
+                   in if | state > 0 && world.selected ==  (-1,-1) -> {world | selected <- (row,col)}
+                         | state > 0 && ((abs (srow-row))+(abs (scol-col))) == 1 -> {world | time <- 0, phase <- Swap, swapWith <- (row,col)}
+                         | otherwise -> {world | selected <- (-1,-1)}
             _ -> world
         Frame dt ->
             case world.phase of
@@ -122,10 +127,11 @@ update u world =
                     else {world | phase <- Steady}
             Swap ->
                 let swapped = swap world.selected world.swapWith world.states
-                    matched = any identity (map (\col -> (holes swapped 0 col) > (holes world.states 0 col)) [1..size])
+                    swapMatched = removeBoth swapped
+                    matched = any identity (map (\col -> (holes swapMatched 0 col) > (holes world.states 0 col)) [1..size])
                 in if world.time < swapDuration then {world | time <- world.time + dt}
                    else if matched || world.swapBack then {world | time <- 0, states <- swapped, swapBack <- False, phase <- Matching}
-                        else {world | time <- 0, states <- swapped, selected <- world.swapWith, swapWith <- world.selected, phase <- Swap, swapBack <- True}
+                        else {world | time <- 0, states <- swapped, phase <- Swap, swapBack <- True}
             Burst ->
                 if world.time < burstDuration then {world | time <- world.time + dt}
                 else {world | time <- 0, states <- world.next, phase <- Fall}
@@ -157,7 +163,7 @@ displayIcon world row col =
         icon = filled (color state) (shape state)
         frame = outlined (solid white) <| rect iconSize iconSize
         phase = Debug.watch "phase" world.phase
-    in if state == 0 then move (x,y) <| toForm empty
+    in if state == 0 then move (x,y) <| filled black <| rect 0 0 -- weird bug when selecting some tiles if this is "toForm empty"
         else case world.phase of
         Steady ->
             if world.selected == (row,col) then move (x,y) <| toForm <| collage iconSize iconSize [icon, frame]
