@@ -22,7 +22,7 @@ import Generic (..)
 
 -- Model
 
-size = 15
+size = 12
 
 type Phase = Steady | Matching | Burst | Fall | Swap
 
@@ -52,15 +52,20 @@ transpose states =
     let state index = head (drop index states)
     in concatMap (\col -> map (\row -> state (index row col)) [1..size]) [1..size]
 
-cleanCol col =
+cleanCol col replacements =
     let filled = filter (\x -> x > 0) col
-        len = length filled
-    in (repeat (size-len) 0) ++ filled
+    in replacements ++ filled
 
-clean states =
+cleanedIn col =
+    length <| filter (\x -> x == 0) col
+
+clean states replacements =
     let byCols = transpose states
         cols = map (\row -> take size (drop (size*(row-1)) byCols)) [1..size]
-    in transpose (concatMap cleanCol cols)
+        neededByCol = map cleanedIn cols
+        -- so, so ugly...
+        replacementsByCol = drop 1 <| map (\(slice,rest) -> slice) (scanl (\count (slice,rest) -> (take count rest, drop count rest)) ([],replacements) neededByCol)
+    in transpose (concat (map2 cleanCol cols replacementsByCol))
 
 removeRuns states =
     let rows = map (\row -> take size (drop (size*(row-1)) states)) [1..size]
@@ -136,14 +141,15 @@ update u world =
                 if world.time < burstDuration then {world | time <- world.time + dt}
                 else {world | time <- 0, states <- world.next, phase <- Fall}
             Fall ->
-                if world.time < fallDuration then {world | time <- world.time + dt}
-                else {world | time <- 0, states <- clean world.states, phase <- Matching}
+                let (states', seed') = Random.generate (Random.list (size^2) (Random.int 1 4)) (Random.initialSeed 0)
+                in if world.time < fallDuration then {world | time <- world.time + dt}
+                else {world | seed <- seed', time <- 0, states <- clean world.states states', phase <- Matching}
             _ -> world
         _ -> world
 
 -- Display
 
-iconSize = 25
+iconSize = 35
 iconSpc = 3
 iconTotal = iconSize+iconSpc
 iconRadius = iconSize/2
