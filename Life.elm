@@ -32,8 +32,10 @@ update u world =
 
 -- Display
 
+size = 10
+
 displayCell (row,col) =
-    move (row*11,col*11) <| filled white <| rect 10 10
+    move (row*(size+1),col*(size+1)) <| filled white <| rect size size
 
 display world =
     let (w',h') = (toFloat world.view.w, toFloat world.view.h)
