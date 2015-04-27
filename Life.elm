@@ -4,14 +4,16 @@ import Graphics.Element (..)
 import Graphics.Collage (..)
 import List (..)
 import Color (..)
+import Time (..)
 
 import Dict
 import Set
-import Time
 import Window
 import Mouse
+import Keyboard
 import Signal
 import Signal.Extra
+import Signal.Time
 
 import Debug
 
@@ -25,11 +27,14 @@ addPair (x1,y1) (x2,y2) =
 
 -- Model
 
+type Action = Live | Paused
+
 start u =
     case u of
         Viewport (w,h) -> {
             view={w=w,h=h},
-            live=[(0,1),(1,0),(-1,-1),(0,-1),(1,-1)]
+            live=[(0,1),(1,0),(-1,-1),(0,-1),(1,-1)],
+            action = Live
         }
 
 neighbors = let near = [0,-1,1] in drop 1 <| cartesian (,) near near
@@ -50,16 +55,21 @@ step liveCells =
 
 -- Update
 
-type Update = Viewport (Int, Int) | Frame Float | Click (Int, Int)
+type Update = Viewport (Int, Int) | Frame Float | Click (Int, Int) | Pause Bool
 
 update u world =
     case u of 
         Viewport (w,h) ->
             let view' = {w=w,h=h}
             in { world | view <- view'}
-        Frame dt -> { world | live <- step world.live }
+        Pause p ->
+            { world | action <- if world.action == Live then Paused else Live}
+        Frame dt ->
+            case world.action of
+                Live -> { world | live <- step world.live }
+                Paused -> world
         Click (x,y) ->
-            let p = ((x-(world.view.w//2)-(size//2)) // (size+1),((world.view.h//2)-y-(size//2)) // (size+1))
+            let p = ((x-(world.view.w//2)-(size//2)) // (size+1),((world.view.h//2)-y-(size//2) ) // (size+1))
             in { world | live <- p :: world.live }
 
 -- Display
@@ -77,10 +87,11 @@ display world =
 
 -- Signals
 
+keys = Signal.map Pause (Signal.Time.dropWithin (300 * millisecond) Keyboard.space)
 clicks = Signal.map Click (Signal.sampleOn Mouse.clicks Mouse.position)
-frames = Signal.map Frame (Time.fps 5)
+frames = Signal.map Frame (fps 5)
 dimensions = Signal.map Viewport (Window.dimensions)
-inputs = Signal.mergeMany [dimensions, frames, clicks]
+inputs = Signal.mergeMany [dimensions, frames, clicks, keys]
 
 main =
     let states = Signal.Extra.foldp' update start inputs
