@@ -6,8 +6,10 @@ import List (..)
 import Color (..)
 
 import Dict
+import Set
 import Time
 import Window
+import Mouse
 import Signal
 import Signal.Extra
 
@@ -48,22 +50,24 @@ step liveCells =
 
 -- Update
 
-type Update = Viewport (Int, Int) | Frame Float
+type Update = Viewport (Int, Int) | Frame Float | Click (Int, Int)
 
 update u world =
     case u of 
         Viewport (w,h) ->
             let view' = {w=w,h=h}
             in { world | view <- view'}
-        Frame dt ->
-            { world | live <- step world.live }
+        Frame dt -> { world | live <- step world.live }
+        Click (x,y) ->
+            let p = ((x-(world.view.w//2)-(size//2)) // (size+1),((size//2)+(world.view.h//2)-y) // (size+1))
+            in { world | live <- p :: world.live }
 
 -- Display
 
 size = 10
 
 displayCell (row,col) =
-    move (row*(size+1),col*(size+1)) <| filled white <| rect size size
+    move (toFloat row*(size+1),toFloat col*(size+1)) <| filled white <| rect size size
 
 display world =
     let (w',h') = (toFloat world.view.w, toFloat world.view.h)
@@ -73,9 +77,10 @@ display world =
 
 -- Signals
 
+clicks = Signal.map Click (Signal.sampleOn Mouse.clicks Mouse.position)
 frames = Signal.map Frame (Time.fps 5)
 dimensions = Signal.map Viewport (Window.dimensions)
-inputs = Signal.mergeMany [dimensions, frames]
+inputs = Signal.mergeMany [dimensions, frames, clicks]
 
 main =
     let states = Signal.Extra.foldp' update start inputs
