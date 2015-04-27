@@ -30,7 +30,7 @@ start u =
             live=[(0,1),(1,0),(-1,-1),(0,-1),(1,-1)]
         }
 
-neighbors = drop 1 <| cartesian (,) [0,-1,1] [0,-1,1]
+neighbors = let near = [0,-1,1] in drop 1 <| cartesian (,) near near
 
 group list =
     let addToGroup pair dict = case Dict.get pair dict of
@@ -39,9 +39,10 @@ group list =
     in foldr addToGroup Dict.empty list
 
 step liveCells =
-    let allNeighbors = concatMap (\cell -> map (addPair cell) neighbors) liveCells
+    let liveSet = Set.fromList liveCells
+        allNeighbors = cartesian addPair liveCells neighbors
         grouped = group allNeighbors
-        liveRules pair count = (count == 2 && (any (\x -> x == pair) liveCells)) || (count == 3)
+        liveRules pair count = (count == 2 && Set.member pair liveSet) || (count == 3) 
         nextGen = Dict.filter liveRules grouped
     in Dict.keys nextGen
 
