@@ -59,7 +59,7 @@ update u world =
             in { world | view <- view'}
         Frame dt -> { world | live <- step world.live }
         Click (x,y) ->
-            let p = ((x-(world.view.w//2)-(size//2)) // (size+1),((size//2)+(world.view.h//2)-y) // (size+1))
+            let p = ((x-(world.view.w//2)-(size//2)) // (size+1),((world.view.h//2)-y-(size//2)) // (size+1))
             in { world | live <- p :: world.live }
 
 -- Display
