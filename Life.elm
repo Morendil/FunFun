@@ -5,6 +5,7 @@ import Graphics.Collage (..)
 import List (..)
 import Color (..)
 import Time (..)
+import AnimationFrame (..)
 
 import Dict
 import Set
@@ -34,7 +35,10 @@ start u =
         Viewport (w,h) -> {
             view={w=w,h=h},
             live=[(0,1),(1,0),(-1,-1),(0,-1),(1,-1)],
-            action = Live
+            action = Live,
+            frame = 100,
+            size = 10.0,
+            time = 0
         }
 
 neighbors = let near = [0,-1,1] in drop 1 <| cartesian (,) near near
@@ -55,7 +59,7 @@ step liveCells =
 
 -- Update
 
-type Update = Viewport (Int, Int) | Frame Float | Click (Int, Int) | Pause Bool
+type Update = Viewport (Int, Int) | Frame Float | Click (Int, Int) | Pause Bool | Control {x:Int,y:Int}
 
 update u world =
     case u of 
@@ -66,32 +70,41 @@ update u world =
             { world | action <- if world.action == Live then Paused else Live}
         Frame dt ->
             case world.action of
-                Live -> { world | live <- step world.live }
+                Live -> if world.time > world.frame
+                    then { world | live <- step world.live, time <- 0 }
+                    else { world | time <- world.time + dt }
                 Paused -> world
         Click (x,y) ->
-            let p = ((x-(world.view.w//2)-(size//2)) // (size+1),((world.view.h//2)-y-(size//2) ) // (size+1))
+            let (x',y') = (toFloat x, toFloat y)
+                (w',h') = (toFloat world.view.w, toFloat world.view.h)
+                p = (floor ((x'-w'/2+size/2)/(size*1.1)), floor ((h'/2-y'+size/2)/(size*1.1)))
             in { world | live <- p :: world.live }
+        Control keys ->
+            let frame' = (world.frame * (100-(toFloat keys.x)*10)) / 100
+                size' = (world.size * (100+(toFloat keys.y)*10)) / 100
+            in { world | frame <- frame', size <- size' }
 
 -- Display
 
 size = 10
 
-displayCell (row,col) =
-    move (toFloat row*(size+1),toFloat col*(size+1)) <| filled white <| rect size size
+displayCell size (row,col) =
+    move (toFloat row*(size*1.1),toFloat col*(size*1.1)) <| filled white <| rect size size
 
 display world =
     let (w',h') = (toFloat world.view.w, toFloat world.view.h)
         backdrop = filled black <| rect w' h'
-        cells = map displayCell world.live
+        cells = map (displayCell world.size) world.live
     in collage world.view.w world.view.h (backdrop :: cells)
 
 -- Signals
 
-keys = Signal.map Pause (Signal.Time.dropWithin (300 * millisecond) Keyboard.space)
+arrows = Signal.map Control Keyboard.arrows
+pause = Signal.map Pause (Signal.Time.dropWithin (300 * millisecond) Keyboard.space)
 clicks = Signal.map Click (Signal.sampleOn Mouse.clicks Mouse.position)
-frames = Signal.map Frame (fps 5)
+frames = Signal.map Frame frame
 dimensions = Signal.map Viewport (Window.dimensions)
-inputs = Signal.mergeMany [dimensions, frames, clicks, keys]
+inputs = Signal.mergeMany [dimensions, frames, clicks, pause, arrows]
 
 main =
     let states = Signal.Extra.foldp' update start inputs
