@@ -5,6 +5,7 @@ import Graphics.Element (..)
 import Graphics.Collage (..)
 import List (..)
 import Color (..)
+import Transform2D
 
 import Window
 import Signal
@@ -26,10 +27,21 @@ update u world = world
 
 -- Display
 
+size = 50
+
+grid =
+        map (\n -> traced (solid white) (segment (n*size,5*size) (n*size,-5*size))) [-5..5]
+    ++  map (\n -> traced (solid white) (segment (-5*size,n*size) (5*size,n*size))) [-5..5]
+
+matrix =
+    let aroundHorizontal = Transform2D.matrix 1 0 0 (cos (degrees 45)) 0 -(sin (degrees 45))
+        aroundNormal = Transform2D.matrix (cos (degrees 45)) -(sin (degrees 45)) (sin (degrees 45)) (cos (degrees 45)) 0 0
+    in Transform2D.multiply aroundHorizontal aroundNormal
+
 display world =
     let (w',h') = (toFloat world.view.w, toFloat world.view.h)
         backdrop = filled black <| rect w' h'
-    in collage world.view.w world.view.h [backdrop]
+    in collage world.view.w world.view.h [backdrop, (groupTransform matrix grid)]
 
 -- Signals
 
