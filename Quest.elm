@@ -28,10 +28,11 @@ update u world = world
 -- Display
 
 size = 50
+gridSize = 5
 
 grid =
-        map (\n -> traced (solid white) (segment (n*size,5*size) (n*size,-5*size))) [-5..5]
-    ++  map (\n -> traced (solid white) (segment (-5*size,n*size) (5*size,n*size))) [-5..5]
+        map (\n -> traced (solid white) (segment (n*size,gridSize*size) (n*size,-gridSize*size))) [-gridSize..gridSize]
+    ++  map (\n -> traced (solid white) (segment (-gridSize*size,n*size) (gridSize*size,n*size))) [-gridSize..gridSize]
 
 matrix =
     let aroundHorizontal = Transform2D.matrix 1 0 0 (cos (degrees 45)) 0 -(sin (degrees 45))
