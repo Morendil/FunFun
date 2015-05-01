@@ -1,6 +1,6 @@
 module Generic where
 
-import List (foldr,repeat,map,map2,append)
+import List exposing (foldr,repeat,map,map2,append)
 
 -- GENERIC
 

@@ -1,15 +1,17 @@
 import Keyboard
 import Window
 import Debug
-import Graphics.Element (..)
-import Graphics.Collage (..)
-import Color (..)
-import Time (fps,second)
+import Graphics.Element exposing (..)
+import Graphics.Collage exposing (..)
+import Color exposing (..)
+import Time exposing (fps,second)
 import Signal
 import Signal.Time
-import List (..)
+import Signal.Extra
+import List exposing (..)
+
 -- App imports
-import Generic (..)
+import Generic exposing (..)
 
 -- MODEL
 
@@ -70,7 +72,7 @@ start_state = [
 type Update = Rewind Bool | Spawn Bool | Move (Float, Keys)
 
 step : Update -> World -> World
-step u world =
+step u (player :: rest) =
   let ghost one = case one of
         Player _ history _ -> let backward = reverse history in Ghost start_mario backward backward
         _ -> one
@@ -81,11 +83,11 @@ step u world =
         Player _ _ _ -> Player start_mario [] []
         Ghost _ history copy -> Ghost start_mario copy copy
         _ -> one
-      player = head world
+      world = player :: rest
   in
   case u of
-    Spawn True -> reset player :: ghost player :: map reset (tail world)
-    Rewind True -> rewind player :: tail world
+    Spawn True -> reset player :: ghost player :: map reset rest
+    Rewind True -> rewind player :: rest
     Move move -> mapAllBut (stepOne move) world
     _ -> world
 
@@ -144,15 +146,15 @@ physics dt world mario =
         newvy = if (isEmpty support) then mario.vy - dt/8 else 0
         extrax = if (isEmpty support) || (mario.vx /= 0) then 0 else
           case head support of
-            Player pl _ _ -> dt * pl.vx
-            Platform pl _ -> dt * pl.vx
-            Cloud pl _ -> dt * pl.vx
+            Just (Player pl _ _) -> dt * pl.vx
+            Just (Platform pl _) -> dt * pl.vx
+            Just (Cloud pl _) -> dt * pl.vx
             _ -> 0
         extray = if (isEmpty support) || (mario.vy /= 0) then 0 else
           case head support of
-            Player pl _ _ -> dt * pl.vy
-            Platform pl _ -> dt * pl.vy
-            Cloud pl _ -> dt * pl.vy
+            Just (Player pl _ _) -> dt * pl.vy
+            Just (Platform pl _) -> dt * pl.vy
+            Just (Cloud pl _) -> dt * pl.vy
             _ -> 0
         blockers = filter (blocks {mario | x <- newx + extrax}) world
     in    
@@ -171,7 +173,7 @@ display (w',h') world =
 
 displayOne : (Float, Float) -> Sprite -> Form
 displayOne dims sprite = case sprite of
-  Player shape _ _ -> Debug.trace "mario" <| displayPlayer dims "ghost" (Debug.watch "mario" shape)
+  Player shape _ _ -> Debug.trace "mario" <| displayPlayer dims "mario" (Debug.watch "mario" shape)
   Ghost shape _ _ -> displayPlayer dims "ghost" shape
   Platform shape _ -> displayPlatform dims shape
   Cloud shape _ -> displayPlatform dims shape
@@ -224,6 +226,6 @@ input =
       deltaArrows = Signal.map2 (,) delta Keyboard.arrows
       moves = Signal.map Move (Signal.sampleOn delta deltaArrows)
       spawns = Signal.map Spawn (Signal.Time.dropWithin second Keyboard.space)
-      rewind = Signal.map Rewind (Signal.keepWhen Keyboard.shift True (Signal.sampleOn delta Keyboard.shift))
+      rewind = Signal.map Rewind (Signal.Extra.keepWhen Keyboard.shift True (Signal.sampleOn delta Keyboard.shift))
   in
       Signal.mergeMany [rewind, spawns, moves]

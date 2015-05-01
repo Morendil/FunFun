@@ -1,13 +1,13 @@
 module MatchThree where
 
-import AnimationFrame (..)
-import Time (..)
+import AnimationFrame exposing (..)
+import Time exposing (..)
 
-import Graphics.Input (..)
-import Graphics.Element (..)
-import Graphics.Collage (..)
-import List (..)
-import Color (..)
+import Graphics.Input exposing (..)
+import Graphics.Element exposing (..)
+import Graphics.Collage exposing (..)
+import List exposing (..)
+import Color exposing (..)
 
 import Random
 
@@ -18,7 +18,7 @@ import Signal.Extra
 import Debug
 
 -- App imports
-import Generic (..)
+import Generic exposing (..)
 
 -- Model
 
@@ -45,11 +45,11 @@ start u =
 index row col = (row-1)*size + (col-1)
 
 holes states row col =
-    let state index = head (drop index states)
+    let state index = at index states
     in length <| filter (\x -> x == 0) (map (\row' -> state (index row' col)) [(row+1)..size])
 
 transpose states =
-    let state index = head (drop index states)
+    let state index = at index states
     in concatMap (\col -> map (\row -> state (index row col)) [1..size]) [1..size]
 
 cleanCol col replacements =
@@ -86,8 +86,8 @@ swap (r_one,c_one) (r_two,c_two) states =
         start = take i_one states
         middle = take (i_two-i_one-1) (drop (i_one+1) states)
         end = drop (i_two+1) states
-        one = head (drop i_one states)
-        two = head (drop i_two states)
+        one = at i_one states
+        two = at i_two states
     in start ++ (two :: middle) ++ (one :: end)
 
 runsToList runs =
@@ -105,6 +105,11 @@ asRuns' runs list =
             (n,x') :: rs -> if x == x' then asRuns' ((n+1,x')::rs) xs
                                        else asRuns' ((1,x)::runs) xs
 
+at index list =
+    let rest = drop index list
+        (element :: _) = rest
+    in element
+
 -- Update
 
 type Update = Viewport (Int, Int) | Click (Int,Int) | Frame Time
@@ -118,7 +123,7 @@ update u world =
         Click (row,col) -> case world.phase of 
             Steady ->
                 let (srow,scol) = world.selected
-                    state = head (drop (index row col) world.states)
+                    state = at (index row col) world.states
                    in if | state > 0 && world.selected ==  (-1,-1) -> {world | selected <- (row,col)}
                          | state > 0 && ((abs (srow-row))+(abs (scol-col))) == 1 -> {world | time <- 0, phase <- Swap, swapWith <- (row,col)}
                          | otherwise -> {world | selected <- (-1,-1)}
@@ -155,17 +160,17 @@ iconTotal = iconSize+iconSpc
 iconRadius = iconSize/2
 
 displaySquare world row col  =
-    clickable (Signal.send locations (row,col)) (collage iconSize iconSize [])
+    clickable (Signal.message locations.address (row,col)) (collage iconSize iconSize [])
 
 displayIcon world row col =
     let its_x row col =  (toFloat col-1)*iconTotal + iconRadius - (size*iconTotal-iconSpc)/2
         its_y row col = -(toFloat row-1)*iconTotal - iconRadius + (size*iconTotal-iconSpc)/2
         x = its_x row col
         y = its_y row col
-        state = head (drop (index row col) world.states)
-        next = head (drop (index row col) world.next)
-        color state = head (drop (state-1) [green,blue,red,white])
-        shape state = head (drop (state-1) [circle iconRadius,ngon 3 iconRadius,rect iconSize iconSize,ngon 5 iconRadius])
+        state = at (index row col) world.states
+        next = at (index row col) world.next
+        color state = at (state-1) [green,blue,red,white]
+        shape state = at (state-1) [circle iconRadius,ngon 3 iconRadius,rect iconSize iconSize,ngon 5 iconRadius]
         icon = filled (color state) (shape state)
         frame = outlined (solid white) <| rect iconSize iconSize
         phase = Debug.watch "phase" world.phase
@@ -217,10 +222,10 @@ display world =
 
 -- Signals
 
-locations = Signal.channel (0,0)
+locations = Signal.mailbox (0,0)
 
 frames = Signal.map Frame frame
-buttons = Signal.map Click (Signal.subscribe locations)
+buttons = Signal.map Click locations.signal
 dimensions = Signal.map Viewport (Window.dimensions)
 inputs = Signal.mergeMany [dimensions,buttons,frames]
 

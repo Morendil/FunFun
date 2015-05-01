@@ -1,16 +1,16 @@
 import Signal
 import Signal.Extra
-import Graphics.Element (..)
-import Graphics.Collage (..)
+import Graphics.Element exposing (..)
+import Graphics.Collage exposing (..)
 import Transform2D
-import Color (..)
-import Time (..)
-import List (..)
+import Color exposing (..)
+import Time exposing (..)
+import List exposing (..)
 import Debug
 import Window
 import Keyboard
 -- App imports
-import Generic (..)
+import Generic exposing (..)
 
 -- Model
 

@@ -1,10 +1,10 @@
 module Merlin where
 
-import Text (..)
-import Graphics.Input (..)
-import Graphics.Element (..)
-import Graphics.Collage (..)
-import Color (..)
+import Text exposing (..)
+import Graphics.Input exposing (..)
+import Graphics.Element exposing (..)
+import Graphics.Collage exposing (..)
+import Color exposing (..)
 
 import List
 import Mouse
@@ -32,7 +32,7 @@ divide n side =
 
 -- Update
 
-type Update = Viewport (Int, Int) | Click (Int,Int)
+type Update = Viewport (Int, Int) | Click (Float,Float)
 
 update u world =
     case u of
@@ -47,8 +47,8 @@ updateClick (row,col) world =
         offsets = List.map which coordOffsets
         toggle which states =
             let before = List.take which states
-                after = List.drop which states
-            in before ++ (not (List.head after) :: (List.tail after))
+                (first :: rest) = List.drop which states
+            in before ++ (not first :: rest)
     in {world | states <- List.foldl toggle world.states offsets}
 
 updateViewport (w,h) world =
@@ -62,10 +62,10 @@ displaySquare row col world =
     let side = gridSize (toFloat world.view.w,toFloat world.view.h)
         small = divide size side
         frnd = toFloat << round
-        state = List.head (List.drop ((((floor row)-1)*size)+(floor col)-1) world.states)
+        (state :: rest) = List.drop ((((floor row)-1)*size)+(floor col)-1) world.states
         style = if state then filled green else outlined (solid white)
         disp = collage (floor small) (floor small) <| [style (rect small small)]
-    in clickable (Signal.send clicks (row,col)) disp
+    in clickable (Signal.message clicks.address (row,col)) disp
 
 rowOfSquares world row =
     let squares = List.map (\col -> displaySquare row col world) [1..size]
@@ -93,8 +93,8 @@ display world =
 
 -- Signals
 
-clicks = Signal.channel (0,0)
-squareClicks = Signal.map Click (Signal.subscribe clicks)
+clicks = Signal.mailbox (0.0,0.0)
+squareClicks = Signal.map Click clicks.signal
 dimensions = Signal.map Viewport (Window.dimensions)
 inputs = Signal.mergeMany [dimensions,squareClicks]
 

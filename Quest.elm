@@ -1,10 +1,10 @@
 module Quest where
 
-import Graphics.Input (..)
-import Graphics.Element (..)
-import Graphics.Collage (..)
-import List (..)
-import Color (..)
+import Graphics.Input exposing (..)
+import Graphics.Element exposing (..)
+import Graphics.Collage exposing (..)
+import List exposing (..)
+import Color exposing (..)
 import Transform2D
 
 import Window
@@ -46,8 +46,8 @@ display world =
 
 -- Signals
 
-locations = Signal.channel (0,0)
-buttons = Signal.map Click (Signal.subscribe locations)
+locations = Signal.mailbox (0,0)
+buttons = Signal.map Click locations.signal
 dimensions = Signal.map Viewport (Window.dimensions)
 inputs = Signal.mergeMany [dimensions,buttons]
 

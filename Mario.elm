@@ -1,14 +1,16 @@
-import Color (..)
+import Color exposing (..)
 import Debug
-import Graphics.Collage (..)
-import Graphics.Element (..)
+import Graphics.Collage exposing (..)
+import Graphics.Element exposing (..)
 import Keyboard
 import Signal
-import Time (..)
-import List (..)
+import Time exposing (..)
+import List exposing (..)
 import Window
 import Signal.Extra
 import Signal.Time
+
+import Maybe exposing (Maybe)
 
 -- MODEL
 
@@ -81,8 +83,11 @@ type Update = Spawn Bool | Move (Float, Keys)
 
 updateWorld : Update -> World -> World
 updateWorld u world =
-  case u of 
-    Spawn true -> (Active mario) :: (append (map cycle (tail world)) [Sleeping mario []])
+  case u of
+    Spawn true ->
+      let rest = case tail world of Nothing -> []
+                                    Just list -> list
+      in (Active mario) :: (append (map cycle rest) [Sleeping mario []])
     Move move -> map (update move) world
     _ -> world
 
@@ -98,7 +103,7 @@ update (dt, keys) mario' =
       Active m -> Active (updateActive (dt,keys) m)      
       Sleeping m x -> Sleeping m (append x [(dt,keys)])
       Ghost m [] sav -> Ghost (updateActive (dt,{x=0,y=0}) m) [] sav
-      Ghost m x sav -> Ghost (updateActive (head x) m) (tail x) sav
+      Ghost m (x :: xs) sav -> Ghost (updateActive x m) xs sav
 
 updateActive (dt,keys) mario =
     let n = 6 in
@@ -124,10 +129,12 @@ physics dt mario =
       newv = if any (collidingWith y_mario) decor then 0 else mario.vy - dt/8
       newmario = firstNonColliding [xymario, y_mario, x_mario, mario]
   in
-     {newmario | vy <- newv}
+    case newmario of
+      Nothing -> mario
+      Just figure -> {figure | vy <- newv}
 
 -- maybe not ideal, Elm being non-lazy
-firstNonColliding : List Figure -> Figure
+firstNonColliding : List Figure -> Maybe Figure
 firstNonColliding list =
   head <| filter (\ mario -> not (colliding mario)) list
 
