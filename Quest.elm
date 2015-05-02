@@ -27,22 +27,27 @@ update u world = world
 
 -- Display
 
-size = 50
+size = 70
 gridSize = 5
 
 grid =
-        map (\n -> traced (solid white) (segment (n*size,gridSize*size) (n*size,-gridSize*size))) [-gridSize..gridSize]
-    ++  map (\n -> traced (solid white) (segment (-gridSize*size,n*size) (gridSize*size,n*size))) [-gridSize..gridSize]
+        map (\n -> traced (solid white) (segment (n*size,gridSize*size) (n*size,0))) [0..gridSize]
+    ++  map (\n -> traced (solid white) (segment (0,n*size) (gridSize*size,n*size))) [0..gridSize]
 
 matrix =
-    let aroundHorizontal = Transform2D.matrix 1 0 0 (cos (degrees 45)) 0 -(sin (degrees 45))
+    let aroundHorizontal = Transform2D.matrix 1 0 0 (cos (degrees 60)) 0 -(sin (degrees 60))
         aroundNormal = Transform2D.matrix (cos (degrees 45)) -(sin (degrees 45)) (sin (degrees 45)) (cos (degrees 45)) 0 0
     in Transform2D.multiply aroundHorizontal aroundNormal
 
 display world =
     let (w',h') = (toFloat world.view.w, toFloat world.view.h)
         backdrop = filled black <| rect w' h'
-    in collage world.view.w world.view.h [backdrop, (groupTransform matrix grid)]
+    in collage world.view.w world.view.h
+        [backdrop,
+         move (-size*gridSize/2-9,-size*gridSize/2-9) (groupTransform matrix grid),
+         toForm (image 100 65 "quest/grass.png"),
+         move (-50,-25) <| toForm (image 100 65 "quest/grass.png"),
+         move (0,-50) <| toForm (image 100 65 "quest/grass.png")]
 
 -- Signals
 
