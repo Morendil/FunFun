@@ -5,6 +5,7 @@ import Graphics.Element exposing (..)
 import Graphics.Collage exposing (..)
 import List exposing (..)
 import Color exposing (..)
+import Text exposing (..)
 import Transform2D
 
 import Window
@@ -28,26 +29,28 @@ update u world = world
 -- Display
 
 size = 70
-gridSize = 5
+gridSize = 6
 
-grid =
-        map (\n -> traced (solid white) (segment (n*size,gridSize*size) (n*size,0))) [0..gridSize]
-    ++  map (\n -> traced (solid white) (segment (0,n*size) (gridSize*size,n*size))) [0..gridSize]
+square row col = move (col*size,-row*size) <|
+                    group [outlined (solid white) <| rect size size, text <|
+                           Text.height 24 <| Text.color white <| fromString <| toString (row,col)]
+
+applyAll = foldl Transform2D.multiply Transform2D.identity
+grid fn = concatMap (\row -> map (\ col -> fn row col) [1..gridSize]) [1..gridSize]
 
 matrix =
-    let aroundHorizontal = Transform2D.matrix 1 0 0 (cos (degrees 60)) 0 -(sin (degrees 60))
+    let offset = Transform2D.translation (-gridSize*size/2) (gridSize*size/2)
+        aroundHorizontal = Transform2D.matrix 1 0 0 (cos (degrees 60)) 0 -(sin (degrees 60))
         aroundNormal = Transform2D.matrix (cos (degrees 45)) -(sin (degrees 45)) (sin (degrees 45)) (cos (degrees 45)) 0 0
-    in Transform2D.multiply aroundHorizontal aroundNormal
+    in applyAll [offset, aroundNormal, aroundHorizontal]
 
 display world =
     let (w',h') = (toFloat world.view.w, toFloat world.view.h)
         backdrop = filled black <| rect w' h'
     in collage world.view.w world.view.h
         [backdrop,
-         move (-size*gridSize/2-9,-size*gridSize/2-9) (groupTransform matrix grid),
-         toForm (image 100 65 "quest/grass.png"),
-         move (-50,-25) <| toForm (image 100 65 "quest/grass.png"),
-         move (0,-50) <| toForm (image 100 65 "quest/grass.png")]
+         groupTransform matrix (grid square),
+         move (-200,6) <| toForm (image 100 65 "quest/grass.png")]
 
 -- Signals
 
