@@ -44,13 +44,21 @@ matrix =
         aroundNormal = Transform2D.matrix (cos (degrees 45)) -(sin (degrees 45)) (sin (degrees 45)) (cos (degrees 45)) 0 0
     in applyAll [offset, aroundNormal, aroundHorizontal]
 
+placeTile row col =
+    let x = -200 + (row-1 + col-1) * 50
+        y = 6 + (col-row) * 25
+    in (x,y)
+
 display world =
     let (w',h') = (toFloat world.view.w, toFloat world.view.h)
         backdrop = filled black <| rect w' h'
     in collage world.view.w world.view.h
         [backdrop,
          groupTransform matrix (grid square),
-         move (-200,6) <| toForm (image 100 65 "quest/grass.png")]
+         move (placeTile 1 1) <| toForm (image 100 65 "quest/grass.png"),
+         move (placeTile 2 2) <| toForm (image 100 65 "quest/grass.png"),
+         move (placeTile 3 3)  <| toForm (image 100 65 "quest/grass.png"),
+         move (placeTile 2 1) <| toForm (image 100 65 "quest/grass.png")]
 
 -- Signals
 
