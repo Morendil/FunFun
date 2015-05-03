@@ -14,6 +14,9 @@ import Signal.Extra
 
 import Debug
 
+-- App imports
+import Generic exposing (..)
+
 -- Model
 
 start u =
@@ -31,12 +34,18 @@ update u world = world
 size = 70
 gridSize = 6
 
-square row col = move (col*size,-row*size) <|
+depth (row,col) = row - col
+        
+square (row,col) = move (col*size,-row*size) <|
                     group [outlined (solid white) <| rect size size, text <|
-                           Text.height 24 <| Text.color white <| fromString <| toString (row,col)]
+                           Text.height 24 <| Text.color white <| fromString <| toString <| depth (row,col)]
 
 applyAll = foldl Transform2D.multiply Transform2D.identity
-grid fn = concatMap (\row -> map (\ col -> fn row col) [1..gridSize]) [1..gridSize]
+
+grid fn =
+    let positions = cartesian (,) [1..gridSize] [1..gridSize]
+        depthSorted = sortBy depth positions
+    in map fn depthSorted
 
 matrix =
     let offset = Transform2D.translation (-gridSize*size/2) (gridSize*size/2)
@@ -44,18 +53,21 @@ matrix =
         aroundNormal = Transform2D.matrix (cos (degrees 45)) -(sin (degrees 45)) (sin (degrees 45)) (cos (degrees 45)) 0 0
     in applyAll [offset, aroundNormal, aroundHorizontal]
 
-placeTile row col =
+placeTile (row,col) =
     let x = -200 + (row-1 + col-1) * 50
         y = 6 + (col-row) * 25
     in (x,y)
 
+displayTile xy =
+    move (placeTile xy) <| toForm (image 100 65 "quest/grass.png")
+
 display world =
     let (w',h') = (toFloat world.view.w, toFloat world.view.h)
         backdrop = filled black <| rect w' h'
-    in collage world.view.w world.view.h
-        ([backdrop,
+    in collage world.view.w world.view.h <|
+        [backdrop,
          groupTransform matrix (grid square)]
-         ++ grid (\row col -> move (placeTile row col) <| toForm (image 100 65 "quest/grass.png")))
+         ++ grid displayTile
 
 -- Signals
 

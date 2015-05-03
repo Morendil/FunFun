@@ -1,8 +1,11 @@
 module Generic where
 
-import List exposing (foldr,repeat,map,map2,append)
+import List exposing (foldr,repeat,map,map2,append,concatMap)
 
 -- GENERIC
+
+cartesian fn list1 list2 =
+    concatMap (\x -> map (fn x) list2) list1
 
 between min max x =
   x >= min && x < max
