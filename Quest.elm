@@ -53,12 +53,9 @@ display world =
     let (w',h') = (toFloat world.view.w, toFloat world.view.h)
         backdrop = filled black <| rect w' h'
     in collage world.view.w world.view.h
-        [backdrop,
-         groupTransform matrix (grid square),
-         move (placeTile 1 1) <| toForm (image 100 65 "quest/grass.png"),
-         move (placeTile 2 2) <| toForm (image 100 65 "quest/grass.png"),
-         move (placeTile 3 3)  <| toForm (image 100 65 "quest/grass.png"),
-         move (placeTile 2 1) <| toForm (image 100 65 "quest/grass.png")]
+        ([backdrop,
+         groupTransform matrix (grid square)]
+         ++ grid (\row col -> move (placeTile row col) <| toForm (image 100 65 "quest/grass.png")))
 
 -- Signals
 
