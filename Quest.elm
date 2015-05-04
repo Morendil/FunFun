@@ -9,6 +9,8 @@ import Text exposing (..)
 import Transform2D
 
 import Window
+import Dict
+import Array
 import Signal
 import Signal.Extra
 
@@ -21,7 +23,24 @@ import Generic exposing (..)
 
 start u =
     case u of
-        Viewport (w,h) -> {view={w=w,h=h}}
+        Viewport (w,h) -> {
+                view={w=w,h=h},
+                tiles = Array.fromList ([4]++(repeat (gridSize-2) 3)++[5]
+                        ++ List.concat ( repeat (gridSize-2)
+                            ([2]++(repeat (gridSize-2) 1)++[2])
+                        ) ++
+                        [6]++(repeat (gridSize-2) 3)++[7])
+            }
+
+tileFiles = Dict.fromList [
+        (1,"quest/grass.png"),
+        (2,"quest/roadNorth.png"),
+        (3,"quest/roadEast.png"),
+        (4,"quest/roadCornerES.png"),
+        (5,"quest/roadCornerWS.png"),
+        (6,"quest/roadCornerNE.png"),
+        (7,"quest/roadCornerNW.png")
+    ]
 
 -- Update
 
@@ -32,7 +51,7 @@ update u world = world
 -- Display
 
 size = 70
-gridSize = 6
+gridSize = 9
 
 depth (row,col) = row - col
         
@@ -54,12 +73,16 @@ matrix =
     in applyAll [offset, aroundNormal, aroundHorizontal]
 
 placeTile (row,col) =
-    let x = -200 + (row-1 + col-1) * 50
+    let x = 50*(2-gridSize) + (row-1 + col-1) * 50
         y = 6 + (col-row) * 25
     in (x,y)
 
-displayTile xy =
-    move (placeTile xy) <| toForm (image 100 65 "quest/grass.png")
+displayTile world xy =
+    let (row,col) = xy
+        index = (row-1)*gridSize+(col-1)
+        (Just state) = Array.get index world.tiles
+        (Just src) = Dict.get state tileFiles
+    in move (placeTile xy) <| toForm (image 100 65 src)
 
 display world =
     let (w',h') = (toFloat world.view.w, toFloat world.view.h)
@@ -67,7 +90,8 @@ display world =
     in collage world.view.w world.view.h <|
         [backdrop,
          groupTransform matrix (grid square)]
-         ++ grid displayTile
+         ++ grid (displayTile world)
+         ++ [move (placeTile (1,2)) <| toForm (image 32 26 "quest/carRed4_002.png")]
 
 -- Signals
 
