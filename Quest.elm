@@ -31,7 +31,11 @@ start u =
                             ([2]++(repeat (gridSize-2) 1)++[2])
                         ) ++
                         [6]++(repeat (gridSize-2) 3)++[7]),
-                car = (0,0)
+                start = placeTile (1,1),
+                car = placeTile (1,1),
+                dest = placeTile (1,gridSize),
+                when = 1000,
+                time = 0
             }
 
 tileFiles = Dict.fromList [
@@ -51,8 +55,11 @@ type Update = Viewport (Int, Int) | Click (Int,Int) | Frame Float
 update u world =
     case u of
         Frame dt ->
-            let car' = addPair world.car (dt/20,dt/20)
-            in {world | car <- car'}
+            let (carx,cary) = world.car
+                (srtx,srty) = world.start
+                (dstx,dsty) = world.dest
+                car' = (srtx+(dstx-srtx)*((min world.time world.when)/world.when),srty+(dsty-srty)*((min world.time world.when)/world.when))
+            in {world | car <- car', time <- world.time + dt/10}
         _ -> world
 
 addPair (x1,y1) (x2,y2) =
@@ -97,13 +104,11 @@ displayTile world xy =
 display world =
     let (w',h') = (toFloat world.view.w, toFloat world.view.h)
         backdrop = filled black <| rect w' h'
-        (carx,cary) = world.car
-        carCoords = (carx*0.5,cary*0.25)
     in collage world.view.w world.view.h <|
         [backdrop,
          groupTransform matrix (grid square)]
          ++ grid (displayTile world)
-         ++ [move (addPair (placeTile (1,2)) carCoords) <| toForm (image 32 26 "quest/carRed4_002.png")]
+         ++ [move world.car <| toForm (image 32 26 "quest/carRed4_002.png")]
 
 -- Signals
 
