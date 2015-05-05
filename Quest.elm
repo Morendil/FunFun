@@ -6,8 +6,9 @@ import Graphics.Collage exposing (..)
 import List exposing (..)
 import Color exposing (..)
 import Text exposing (..)
-import Transform2D
+import AnimationFrame exposing (..)
 
+import Transform2D
 import Window
 import Dict
 import Array
@@ -29,7 +30,8 @@ start u =
                         ++ List.concat ( repeat (gridSize-2)
                             ([2]++(repeat (gridSize-2) 1)++[2])
                         ) ++
-                        [6]++(repeat (gridSize-2) 3)++[7])
+                        [6]++(repeat (gridSize-2) 3)++[7]),
+                car = (0,0)
             }
 
 tileFiles = Dict.fromList [
@@ -44,9 +46,17 @@ tileFiles = Dict.fromList [
 
 -- Update
 
-type Update = Viewport (Int, Int) | Click (Int,Int)
+type Update = Viewport (Int, Int) | Click (Int,Int) | Frame Float
 
-update u world = world
+update u world =
+    case u of
+        Frame dt ->
+            let car' = addPair world.car (dt/20,dt/20)
+            in {world | car <- car'}
+        _ -> world
+
+addPair (x1,y1) (x2,y2) =
+    (x1+x2,y1+y2)
 
 -- Display
 
@@ -87,18 +97,22 @@ displayTile world xy =
 display world =
     let (w',h') = (toFloat world.view.w, toFloat world.view.h)
         backdrop = filled black <| rect w' h'
+        (carx,cary) = world.car
+        carCoords = (carx*0.5,cary*0.25)
     in collage world.view.w world.view.h <|
         [backdrop,
          groupTransform matrix (grid square)]
          ++ grid (displayTile world)
-         ++ [move (placeTile (1,2)) <| toForm (image 32 26 "quest/carRed4_002.png")]
+         ++ [move (addPair (placeTile (1,2)) carCoords) <| toForm (image 32 26 "quest/carRed4_002.png")]
 
 -- Signals
 
 locations = Signal.mailbox (0,0)
 buttons = Signal.map Click locations.signal
 dimensions = Signal.map Viewport (Window.dimensions)
-inputs = Signal.mergeMany [dimensions,buttons]
+frames = Signal.map Frame frame
+
+inputs = Signal.mergeMany [dimensions,buttons,frames]
 
 main =
     let states = Signal.Extra.foldp' update start inputs
