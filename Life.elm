@@ -1,11 +1,11 @@
 module Life (main) where
 
-import Graphics.Element (..)
-import Graphics.Collage (..)
-import List (..)
-import Color (..)
-import Time (..)
-import AnimationFrame (..)
+import Graphics.Element exposing (..)
+import Graphics.Collage exposing (..)
+import List exposing (..)
+import Color exposing (..)
+import Time exposing (..)
+import AnimationFrame exposing (..)
 
 import Dict
 import Set
