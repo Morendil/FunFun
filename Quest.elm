@@ -35,6 +35,7 @@ start u =
                 car = placeTile (1,1),
                 dest = placeTile (1,gridSize),
                 when = 1000,
+                img = "quest/carRed4_002.png",
                 time = 0
             }
 
@@ -55,6 +56,9 @@ type Update = Viewport (Int, Int) | Click (Int,Int) | Frame Float
 update u world =
     case u of
         Frame dt ->
+            if world.time > world.when then
+                {world | start <- world.car, dest <- placeTile (gridSize,gridSize), img <- "quest/carRed4_003.png", time <- 0 }
+            else
             let (carx,cary) = world.car
                 (srtx,srty) = world.start
                 (dstx,dsty) = world.dest
@@ -108,7 +112,7 @@ display world =
         [backdrop,
          groupTransform matrix (grid square)]
          ++ grid (displayTile world)
-         ++ [move world.car <| toForm (image 32 26 "quest/carRed4_002.png")]
+         ++ [move world.car <| toForm (image 32 26 world.img)]
 
 -- Signals
 
