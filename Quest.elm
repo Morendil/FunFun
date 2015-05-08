@@ -24,19 +24,20 @@ import Generic exposing (..)
 
 start u =
     case u of
-        Viewport (w,h) -> {
+        Viewport (w,h) -> zero {
                 view={w=w,h=h},
                 tiles = Array.fromList ([4]++(repeat (gridSize-2) 3)++[5]
                         ++ List.concat ( repeat (gridSize-2)
                             ([2]++(repeat (gridSize-2) 1)++[2])
                         ) ++
                         [6]++(repeat (gridSize-2) 3)++[7]),
-                start = placeTile (1,1),
-                car = placeTile (1,1),
-                dest = placeTile (1,gridSize),
-                when = 1000,
-                img = "quest/carRed4_002.png",
-                time = 0
+                start = (0,0),
+                car = (0,0),
+                dest = (0,0),
+                when = 0,
+                img = "",
+                time = 0,
+                anim = 0
             }
 
 tileFiles = Dict.fromList [
@@ -49,6 +50,15 @@ tileFiles = Dict.fromList [
         (7,"quest/roadCornerNW.png")
     ]
 
+zero world = {world |
+    start <- placeTile (1,1), dest <- placeTile (1,gridSize), img <- "quest/carRed4_002.png", time <- 0, when <- 300, anim <- 1}
+one world = {world |
+    start <- world.car, dest <- placeTile (gridSize,gridSize), img <- "quest/carRed4_007.png", time <- 0, when <- 300, anim <- 2}
+two world = {world |
+    start <- world.car, dest <- placeTile (gridSize,1), img <- "quest/carRed4_006.png", time <- 0, when <- 300, anim <- 3}
+three world = {world |
+    start <- world.car, dest <- placeTile (1,1), img <- "quest/carRed4_000.png", time <- 0, when <- 300, anim <- 0}
+
 -- Update
 
 type Update = Viewport (Int, Int) | Click (Int,Int) | Frame Float
@@ -57,7 +67,11 @@ update u world =
     case u of
         Frame dt ->
             if world.time > world.when then
-                {world | start <- world.car, dest <- placeTile (gridSize,gridSize), img <- "quest/carRed4_003.png", time <- 0 }
+                (case world.anim of
+                    0 -> zero
+                    1 -> one
+                    2 -> two
+                    3 -> three) world
             else
             let (carx,cary) = world.car
                 (srtx,srty) = world.start
@@ -112,7 +126,7 @@ display world =
         [backdrop,
          groupTransform matrix (grid square)]
          ++ grid (displayTile world)
-         ++ [move world.car <| toForm (image 32 26 world.img)]
+         ++ [move (addPair world.car (6,12)) <| toForm (image 32 26 world.img)]
 
 -- Signals
 
