@@ -18,6 +18,7 @@ import Signal.Extra
 import Debug
 
 -- App imports
+import Audio exposing (..)
 import Generic exposing (..)
 
 -- Model
@@ -152,6 +153,22 @@ update u world =
             _ -> world
         _ -> world
 
+-- Audio
+-- Because audio actions are an output, this part is completely disconnected from the rest of the program
+
+handleAudio world =
+    case world.phase of
+        Burst -> Audio.Play
+        Fall -> Audio.Play
+        Matching -> Audio.Seek 0.0
+        _ -> Audio.Pause
+
+break : Signal (Audio.Event, Audio.Properties)
+break = Audio.audio { src = "match/as_h_broke.wav",
+                        triggers = defaultTriggers,
+                        propertiesHandler = always Nothing,
+                        actions = Signal.map handleAudio states }
+
 -- Display
 
 iconSize = 35
@@ -229,6 +246,6 @@ buttons = Signal.map Click locations.signal
 dimensions = Signal.map Viewport (Window.dimensions)
 inputs = Signal.mergeMany [dimensions,buttons,frames]
 
-main =
-    let states = Signal.Extra.foldp' update start inputs
-    in Signal.map display states
+states = Signal.Extra.foldp' update start inputs
+
+main = Signal.map display states
