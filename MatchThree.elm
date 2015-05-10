@@ -111,6 +111,8 @@ at index list =
         (element :: _) = rest
     in element
 
+didMatch states states' =
+    any (\col -> (holes states' 0 col) > (holes states 0 col)) [1..size]
 -- Update
 
 type Update = Viewport (Int, Int) | Click (Int,Int) | Frame Time
@@ -133,7 +135,7 @@ update u world =
             case world.phase of
             Matching ->
                 let states' = removeBoth world.states
-                    matched = any identity (map (\col -> (holes states' 0 col) > (holes world.states 0 col)) [1..size])
+                    matched = didMatch world.states states'
                 in if matched then {world | time <- 0, next <- states', phase <- Burst}
                     else {world | phase <- Steady}
             Swap ->
