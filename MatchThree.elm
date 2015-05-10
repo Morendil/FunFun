@@ -33,7 +33,7 @@ start u =
         let (states, seed) = Random.generate (Random.list (size^2) (Random.int 1 4)) (Random.initialSeed 0)
         in {
             view={w=w,h=h},
-            states = states,
+            states = steady states seed,
             next = states,
             phase = Matching,
             swapBack = False,
@@ -113,6 +113,14 @@ at index list =
 
 didMatch states states' =
     any (\col -> (holes states' 0 col) > (holes states 0 col)) [1..size]
+
+steady states seed =
+    let states' = removeBoth states
+    in case didMatch states states' of
+        False -> states
+        True -> let (moreStates, seed') = Random.generate (Random.list (size^2) (Random.int 1 4)) seed
+                in steady (clean states' moreStates) seed'
+
 -- Update
 
 type Update = Viewport (Int, Int) | Click (Int,Int) | Frame Time
