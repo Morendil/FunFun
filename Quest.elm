@@ -26,7 +26,7 @@ start u =
     case u of
         Viewport (w,h) -> zero {
                 view={w=w,h=h},
-                tiles = Array.fromList ([4]++(repeat (gridSize-2) 3)++[5]
+                tiles = Array.fromList ([4]++(repeat (gridSize-3) 3)++[0,5]
                         ++ List.concat ( repeat (gridSize-2)
                             ([2]++(repeat (gridSize-2) 1)++[2])
                         ) ++
@@ -116,8 +116,9 @@ displayTile world xy =
     let (row,col) = xy
         index = (row-1)*gridSize+(col-1)
         (Just state) = Array.get index world.tiles
-        (Just src) = Dict.get state tileFiles
-    in move (placeTile xy) <| toForm (image 100 65 src)
+    in case (Dict.get state tileFiles) of
+        Just src -> move (placeTile xy) <| toForm (image 100 65 src)
+        _ -> group []
 
 display world =
     let (w',h') = (toFloat world.view.w, toFloat world.view.h)
@@ -126,6 +127,7 @@ display world =
         [backdrop,
          groupTransform matrix (grid square)]
          ++ grid (displayTile world)
+         ++ [move (placeTile (5,-1)) <| toForm (image 100 65 "quest/roadEast.png")]
          ++ [move (addPair world.car (6,12)) <| toForm (image 32 26 world.img)]
 
 -- Signals
