@@ -53,11 +53,11 @@ tileFiles = Dict.fromList [
 zero world = {world |
     start <- placeTile (1,1), dest <- placeTile (1,gridSize), img <- "quest/carRed4_002.png", time <- 0, when <- 300, anim <- 1}
 one world = {world |
-    start <- world.car, dest <- placeTile (gridSize,gridSize), img <- "quest/carRed4_007.png", time <- 0, when <- 300, anim <- 2}
+    start <- placeTile (1,gridSize), dest <- placeTile (gridSize,gridSize), img <- "quest/carRed4_007.png", time <- 0, when <- 300, anim <- 2}
 two world = {world |
-    start <- world.car, dest <- placeTile (gridSize,1), img <- "quest/carRed4_006.png", time <- 0, when <- 300, anim <- 3}
+    start <- placeTile (gridSize,gridSize), dest <- placeTile (gridSize,1), img <- "quest/carRed4_006.png", time <- 0, when <- 300, anim <- 3}
 three world = {world |
-    start <- world.car, dest <- placeTile (1,1), img <- "quest/carRed4_000.png", time <- 0, when <- 300, anim <- 0}
+    start <- placeTile (gridSize,1), dest <- placeTile (1,1), img <- "quest/carRed4_000.png", time <- 0, when <- 300, anim <- 0}
 
 -- Update
 
