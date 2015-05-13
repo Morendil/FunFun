@@ -22,6 +22,8 @@ import Generic exposing (..)
 
 -- Model
 
+type Phase = Run | Crash
+
 start u =
     case u of
         Viewport (w,h) -> zero {
@@ -31,6 +33,7 @@ start u =
                             ([2]++(repeat (gridSize-2) 1)++[2])
                         ) ++
                         [6]++(repeat (gridSize-2) 3)++[7]),
+                phase = Run,
                 start = (0,0),
                 car = (0,0),
                 dest = (0,0),
@@ -120,15 +123,22 @@ displayTile world xy =
         Just src -> move (placeTile xy) <| toForm (image 100 65 src)
         _ -> group []
 
+overlayStyle = { typeface = [], height = Just 24, color = white, bold = True, italic = False, line = Nothing}
+
+overlay world =
+    if world.phase == Crash then [container world.view.w world.view.h middle <| centered <| style overlayStyle <| fromString "You Crashed!"]
+    else []
+
 display world =
     let (w',h') = (toFloat world.view.w, toFloat world.view.h)
         backdrop = filled black <| rect w' h'
-    in collage world.view.w world.view.h <|
+        game = collage world.view.w world.view.h <|
         [backdrop,
          groupTransform matrix (grid square)]
          ++ grid (displayTile world)
          ++ [move (placeTile (5,-1)) <| toForm (image 100 65 "quest/roadEast.png")]
          ++ [move (addPair world.car (6,12)) <| toForm (image 32 26 world.img)]
+    in layers <| game :: (overlay world)
 
 -- Signals
 
