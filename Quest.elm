@@ -61,13 +61,13 @@ carImage direction = case direction of
         North -> "quest/carRed4_000.png"
 
 zero world = {world |
-    start <- placeTile (1,1), dest <- placeTile (1,gridSize), dir <- West, time <- 0, when <- 300, anim <- 1}
+    start <- (1,1), dest <-(1,gridSize), dir <- West, time <- 0, when <- 300, anim <- 1}
 one world = {world |
-    start <- placeTile (1,gridSize), dest <- placeTile (gridSize,gridSize), dir <- South, time <- 0, when <- 300, anim <- 2}
+    start <- (1,gridSize), dest <-(gridSize,gridSize), dir <- South, time <- 0, when <- 300, anim <- 2}
 two world = {world |
-    start <- placeTile (gridSize,gridSize), dest <- placeTile (gridSize,1), dir <- East, time <- 0, when <- 300, anim <- 3}
+    start <- (gridSize,gridSize), dest <- (gridSize,1), dir <- East, time <- 0, when <- 300, anim <- 3}
 three world = {world |
-    start <- placeTile (gridSize,1), dest <- placeTile (1,1), dir <- North, time <- 0, when <- 300, anim <- 0}
+    start <- (gridSize,1), dest <- (1,1), dir <- North, time <- 0, when <- 300, anim <- 0}
 
 -- Update
 
@@ -84,8 +84,8 @@ update u world =
                     3 -> three) world
             else
             let (carx,cary) = world.car
-                (srtx,srty) = world.start
-                (dstx,dsty) = world.dest
+                (srtx,srty) = placeTile world.start
+                (dstx,dsty) = placeTile world.dest
                 car' = (srtx+(dstx-srtx)*((min world.time world.when)/world.when),srty+(dsty-srty)*((min world.time world.when)/world.when))
             in {world | car <- car', time <- world.time + dt/10}
         _ -> world
