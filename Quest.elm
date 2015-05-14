@@ -23,6 +23,7 @@ import Generic exposing (..)
 -- Model
 
 type Phase = Run | Crash
+type Direction = East | South | West | North
 
 start u =
     case u of
@@ -38,7 +39,7 @@ start u =
                 car = (0,0),
                 dest = (0,0),
                 when = 0,
-                img = "",
+                dir = West,
                 time = 0,
                 anim = 0
             }
@@ -53,14 +54,20 @@ tileFiles = Dict.fromList [
         (7,"quest/roadCornerNW.png")
     ]
 
+carImage direction = case direction of
+        West -> "quest/carRed4_002.png"
+        South -> "quest/carRed4_007.png"
+        East -> "quest/carRed4_006.png"
+        North -> "quest/carRed4_000.png"
+
 zero world = {world |
-    start <- placeTile (1,1), dest <- placeTile (1,gridSize), img <- "quest/carRed4_002.png", time <- 0, when <- 300, anim <- 1}
+    start <- placeTile (1,1), dest <- placeTile (1,gridSize), dir <- West, time <- 0, when <- 300, anim <- 1}
 one world = {world |
-    start <- placeTile (1,gridSize), dest <- placeTile (gridSize,gridSize), img <- "quest/carRed4_007.png", time <- 0, when <- 300, anim <- 2}
+    start <- placeTile (1,gridSize), dest <- placeTile (gridSize,gridSize), dir <- South, time <- 0, when <- 300, anim <- 2}
 two world = {world |
-    start <- placeTile (gridSize,gridSize), dest <- placeTile (gridSize,1), img <- "quest/carRed4_006.png", time <- 0, when <- 300, anim <- 3}
+    start <- placeTile (gridSize,gridSize), dest <- placeTile (gridSize,1), dir <- East, time <- 0, when <- 300, anim <- 3}
 three world = {world |
-    start <- placeTile (gridSize,1), dest <- placeTile (1,1), img <- "quest/carRed4_000.png", time <- 0, when <- 300, anim <- 0}
+    start <- placeTile (gridSize,1), dest <- placeTile (1,1), dir <- North, time <- 0, when <- 300, anim <- 0}
 
 -- Update
 
@@ -129,6 +136,10 @@ overlay world =
     if world.phase == Crash then [container world.view.w world.view.h middle <| centered <| style overlayStyle <| fromString "You Crashed!"]
     else []
 
+displayCar world =
+    let img = carImage world.dir
+    in move (addPair world.car (6,12)) <| toForm (image 32 26 img)
+
 display world =
     let (w',h') = (toFloat world.view.w, toFloat world.view.h)
         backdrop = filled black <| rect w' h'
@@ -137,7 +148,7 @@ display world =
          groupTransform matrix (grid square)]
          ++ grid (displayTile world)
          ++ [move (placeTile (5,-1)) <| toForm (image 100 65 "quest/roadEast.png")]
-         ++ [move (addPair world.car (6,12)) <| toForm (image 32 26 world.img)]
+         ++ [displayCar world]
     in layers <| game :: (overlay world)
 
 -- Signals
