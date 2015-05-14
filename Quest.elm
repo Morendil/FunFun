@@ -27,7 +27,7 @@ type Direction = East | South | West | North
 
 start u =
     case u of
-        Viewport (w,h) -> zero {
+        Viewport (w,h) -> {
                 view={w=w,h=h},
                 tiles = Array.fromList ([4]++(repeat (gridSize-3) 3)++[0,5]
                         ++ List.concat ( repeat (gridSize-2)
@@ -35,11 +35,11 @@ start u =
                         ) ++
                         [6]++(repeat (gridSize-2) 3)++[7]),
                 phase = Run,
-                start = (0,0),
-                car = (0,0),
-                dest = (0,0),
-                when = 0,
-                dir = West,
+                start = (1,1),
+                dest = (1,2),
+                car = placeTile (1,1),
+                when = 50,
+                dir = East,
                 time = 0,
                 anim = 0
             }
@@ -55,33 +55,34 @@ tileFiles = Dict.fromList [
     ]
 
 carImage direction = case direction of
-        West -> "quest/carRed4_002.png"
+        East -> "quest/carRed4_002.png"
         South -> "quest/carRed4_007.png"
-        East -> "quest/carRed4_006.png"
+        West -> "quest/carRed4_006.png"
         North -> "quest/carRed4_000.png"
-
-zero world = {world |
-    start <- (1,1), dest <-(1,gridSize), dir <- West, time <- 0, when <- 300, anim <- 1}
-one world = {world |
-    start <- (1,gridSize), dest <-(gridSize,gridSize), dir <- South, time <- 0, when <- 300, anim <- 2}
-two world = {world |
-    start <- (gridSize,gridSize), dest <- (gridSize,1), dir <- East, time <- 0, when <- 300, anim <- 3}
-three world = {world |
-    start <- (gridSize,1), dest <- (1,1), dir <- North, time <- 0, when <- 300, anim <- 0}
 
 -- Update
 
 type Update = Viewport (Int, Int) | Click (Int,Int) | Frame Float
 
+roadAt tile world =
+    let (row,col) = tile
+        index = (row-1)*gridSize+(col-1)
+        (Just value) = Array.get index world.tiles
+    in value
+
+arriveAt tile world =
+    let road = roadAt tile world
+    in case road of
+        3 -> case world.dir of
+                East -> {world | time <-0, start <- world.dest, dest <- addPair world.dest (0,1)}
+                _ -> {world | phase <- Crash}
+        _ -> {world | phase <- Crash}
+
 update u world =
     case u of
         Frame dt ->
             if world.time > world.when then
-                (case world.anim of
-                    0 -> zero
-                    1 -> one
-                    2 -> two
-                    3 -> three) world
+                arriveAt world.dest world
             else
             let (carx,cary) = world.car
                 (srtx,srty) = placeTile world.start
