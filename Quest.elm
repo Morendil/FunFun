@@ -40,7 +40,7 @@ start u =
                 start = (1,1),
                 dest = (1,2),
                 car = placeTile (1,1),
-                when = 100,
+                when = 50,
                 dir = East,
                 time = 0,
                 anim = 0
@@ -77,6 +77,23 @@ arriveAt tile world =
     in case road of
         3 -> case world.dir of
                 East -> {world | time <-0, start <- world.dest, dest <- addPair world.dest (0,1)}
+                West -> {world | time <-0, start <- world.dest, dest <- addPair world.dest (0,-1)}
+                _ -> {world | phase <- Crash}
+        5 -> case world.dir of
+                East -> {world | time <-0, start <- world.dest, dir <- South, dest <- addPair world.dest (1,0)}
+                _ -> {world | phase <- Crash}
+        2 -> case world.dir of
+                South -> {world | time <-0, start <- world.dest, dest <- addPair world.dest (1,0)}
+                North -> {world | time <-0, start <- world.dest, dest <- addPair world.dest (-1,0)}
+                _ -> {world | phase <- Crash}
+        7 -> case world.dir of
+                South -> {world | time <-0, start <- world.dest, dir <- West, dest <- addPair world.dest (0,-1)}
+                _ -> {world | phase <- Crash}
+        6 -> case world.dir of
+                West -> {world | time <-0, start <- world.dest, dir <- North, dest <- addPair world.dest (-1,0)}
+                _ -> {world | phase <- Crash}
+        4 -> case world.dir of
+                North -> {world | time <-0, start <- world.dest, dir <- East, dest <- addPair world.dest (0,1)}
                 _ -> {world | phase <- Crash}
         _ -> {world | phase <- Crash}
 
