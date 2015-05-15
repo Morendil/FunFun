@@ -10,6 +10,8 @@ import AnimationFrame exposing (..)
 
 import Transform2D
 import Window
+import Mouse
+
 import Dict
 import Array
 import Signal
@@ -38,7 +40,7 @@ start u =
                 start = (1,1),
                 dest = (1,2),
                 car = placeTile (1,1),
-                when = 50,
+                when = 100,
                 dir = East,
                 time = 0,
                 anim = 0
@@ -80,6 +82,11 @@ arriveAt tile world =
 
 update u world =
     case u of
+        Click coords ->
+            let tile = whichTile world coords
+                (row,col) = tile
+                index = (row-1)*gridSize+(col-1)
+            in {world | tiles <- Array.set index 3 world.tiles}
         Frame dt ->
             if world.time > world.when then
                 arriveAt world.dest world
@@ -95,6 +102,10 @@ addPair (x1,y1) (x2,y2) =
     (x1+x2,y1+y2)
 
 -- Display
+
+whichTile world mousePos =
+    let (rx,ry) = addPair mousePos (-(world.view.w-gridSize*100-85)//2,-world.view.h//2+10)
+    in ((rx+ry*2)//100,(rx-ry*2)//100)
 
 size = 70
 gridSize = 9
@@ -154,12 +165,11 @@ display world =
 
 -- Signals
 
-locations = Signal.mailbox (0,0)
-buttons = Signal.map Click locations.signal
+clicks = Signal.map Click (Signal.sampleOn Mouse.clicks Mouse.position)
 dimensions = Signal.map Viewport (Window.dimensions)
 frames = Signal.map Frame frame
 
-inputs = Signal.mergeMany [dimensions,buttons,frames]
+inputs = Signal.mergeMany [dimensions,clicks,frames]
 
 main =
     let states = Signal.Extra.foldp' update start inputs
