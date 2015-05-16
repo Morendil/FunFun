@@ -12,6 +12,7 @@ import Transform2D
 import Window
 import Mouse
 
+import Random
 import Dict
 import Array
 import Signal
@@ -36,6 +37,8 @@ start u =
                             ([2]++(repeat (gridSize-2) 1)++[2])
                         ) ++
                         [6]++(repeat (gridSize-2) 3)++[7]),
+                next = 3,
+                seed = Random.initialSeed 0,
                 phase = Run,
                 start = (1,1),
                 dest = (1,2),
@@ -104,7 +107,8 @@ update u world =
             let tile = whichTile world coords
                 (row,col) = tile
                 index = (row-1)*gridSize+(col-1)
-            in {world | tiles <- Array.set index 3 world.tiles}
+                (next,seed) = Random.generate (Random.int 1 7) world.seed
+            in {world | tiles <- Array.set index world.next world.tiles, seed <- seed, next <- next}
         Frame dt ->
             if world.time > world.when then
                 arriveAt world.dest world
@@ -161,7 +165,10 @@ displayTile world xy =
     let (row,col) = xy
         index = (row-1)*gridSize+(col-1)
         (Just state) = Array.get index world.tiles
-    in case (Dict.get state tileFiles) of
+    in renderTile xy state
+
+renderTile xy state =
+    case (Dict.get state tileFiles) of
         Just src -> move (placeTile xy) <| toForm (image 100 65 src)
         _ -> group []
 
@@ -182,7 +189,7 @@ display world =
         [backdrop,
          groupTransform matrix (grid square)]
          ++ grid (displayTile world)
-         ++ [move (placeTile (5,-1)) <| toForm (image 100 65 "quest/roadEast.png")]
+         ++ [renderTile (5,-1) world.next]
          ++ [displayCar world]
     in layers <| game :: (overlay world)
 
