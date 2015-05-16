@@ -72,29 +72,29 @@ roadAt tile world =
         (Just value) = Array.get index world.tiles
     in value
 
+advance world =
+    case world.dir of
+        East -> {world | dest <- addPair world.dest (0,1)} 
+        West -> {world | dest <- addPair world.dest (0,-1)}
+        South -> {world | dest <- addPair world.dest (1,0)}
+        North -> {world | dest <- addPair world.dest (-1,0)}
+
 arriveAt tile world =
     let road = roadAt tile world
+        world' = {world | time <-0, start <- world.dest}
     in case road of
-        3 -> case world.dir of
-                East -> {world | time <-0, start <- world.dest, dest <- addPair world.dest (0,1)}
-                West -> {world | time <-0, start <- world.dest, dest <- addPair world.dest (0,-1)}
-                _ -> {world | phase <- Crash}
-        5 -> case world.dir of
-                East -> {world | time <-0, start <- world.dest, dir <- South, dest <- addPair world.dest (1,0)}
-                _ -> {world | phase <- Crash}
-        2 -> case world.dir of
-                South -> {world | time <-0, start <- world.dest, dest <- addPair world.dest (1,0)}
-                North -> {world | time <-0, start <- world.dest, dest <- addPair world.dest (-1,0)}
-                _ -> {world | phase <- Crash}
-        7 -> case world.dir of
-                South -> {world | time <-0, start <- world.dest, dir <- West, dest <- addPair world.dest (0,-1)}
-                _ -> {world | phase <- Crash}
-        6 -> case world.dir of
-                West -> {world | time <-0, start <- world.dest, dir <- North, dest <- addPair world.dest (-1,0)}
-                _ -> {world | phase <- Crash}
-        4 -> case world.dir of
-                North -> {world | time <-0, start <- world.dest, dir <- East, dest <- addPair world.dest (0,1)}
-                _ -> {world | phase <- Crash}
+        3 -> if (world.dir == East || world.dir == West) then advance world'
+             else {world | phase <- Crash}
+        2 -> if (world.dir == North || world.dir == South) then advance world'
+             else {world | phase <- Crash}
+        4 -> if (world.dir == North) then advance {world' | dir <- East}
+             else {world | phase <- Crash}
+        5 -> if (world.dir == East) then advance {world' | dir <- South}
+             else {world | phase <- Crash}
+        6 -> if (world.dir == West) then advance {world' | dir <- North}
+             else {world | phase <- Crash}
+        7 -> if (world.dir == South) then advance {world' | dir <- West}
+             else {world | phase <- Crash}
         _ -> {world | phase <- Crash}
 
 update u world =
