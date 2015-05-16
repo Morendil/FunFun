@@ -99,6 +99,7 @@ arriveAt tile world =
 
 update u world =
     case u of
+        Viewport vp -> updateViewport vp world
         Click coords ->
             let tile = whichTile world coords
                 (row,col) = tile
@@ -114,6 +115,11 @@ update u world =
                 car' = (srtx+(dstx-srtx)*((min world.time world.when)/world.when),srty+(dsty-srty)*((min world.time world.when)/world.when))
             in {world | car <- car', time <- world.time + dt/10}
         _ -> world
+
+updateViewport (w,h) world =
+    let view = world.view
+        view' = {view | w<-w,h<-h}
+    in {world | view <- view'}
 
 addPair (x1,y1) (x2,y2) =
     (x1+x2,y1+y2)
