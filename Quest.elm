@@ -30,7 +30,7 @@ type Direction = East | South | West | North
 
 start u =
     case u of
-        Viewport (w,h) -> {
+        Viewport (w,h) -> advance {
                 view={w=w,h=h},
                 tiles = Array.fromList ([4]++(repeat (gridSize-3) 3)++[0,5]
                         ++ List.concat ( repeat (gridSize-2)
@@ -41,12 +41,11 @@ start u =
                 seed = Random.initialSeed 0,
                 phase = Run,
                 start = (1,1),
-                dest = (1,2),
+                dest = (1,1),
                 car = placeTile (1,1),
                 when = 50,
                 dir = East,
-                time = 0,
-                anim = 0
+                time = 0
             }
 
 tileFiles = Dict.fromList [
@@ -56,7 +55,12 @@ tileFiles = Dict.fromList [
         (4,"quest/roadCornerES.png"),
         (5,"quest/roadCornerWS.png"),
         (6,"quest/roadCornerNE.png"),
-        (7,"quest/roadCornerNW.png")
+        (7,"quest/roadCornerNW.png"),
+        (8,"quest/crossroad.png"),
+        (9,"quest/roadTWest.png"),
+        (10,"quest/roadTSouth.png"),
+        (11,"quest/roadTEast.png"),
+        (12,"quest/roadTNorth.png")
     ]
 
 carImage direction = case direction of
@@ -82,23 +86,60 @@ advance world =
         South -> {world | dest <- addPair world.dest (1,0)}
         North -> {world | dest <- addPair world.dest (-1,0)}
 
+sw pick dir = case dir of
+    South -> East
+    West -> North
+ne pick dir = case dir of
+    North -> West
+    East -> South
+se pick dir = case dir of
+    South -> West
+    East -> North
+nw pick dir = case dir of
+    North -> East
+    West -> South
+nse pick dir = case dir of
+    East -> from [North,South] pick
+    _ -> dir
+ewn pick dir = case dir of
+    North -> from [East,West] pick
+    _ -> dir
+nsw pick dir = case dir of
+    West -> from [North,South] pick
+    _ -> dir
+sew pick dir = case dir of
+    South -> from [East,West] pick
+    _ -> dir
+
+from array index =
+    let len = List.length array
+        (Just value) = Array.get (index % len) (Array.fromList array)
+    in value
+
+rules = Dict.fromList [
+        (2,{dirs=[North,South],turn=always identity}),
+        (3,{dirs=[East,West],turn=always identity}),
+        (4,{dirs=[North,West],turn=nw}),
+        (5,{dirs=[North,East],turn=ne}),
+        (6,{dirs=[South,West],turn=sw}),
+        (7,{dirs=[South,East],turn=se}),
+        (8,{dirs=[South,East,North,West],turn=always identity}),
+        (9,{dirs=[North,South,East],turn=nse}),
+        (10,{dirs=[East,West,North],turn=ewn}),
+        (11,{dirs=[North,South,West],turn=nsw}),
+        (12,{dirs=[South,East,West],turn=sew})
+    ]
+
 arriveAt tile world =
     let road = roadAt tile world
         world' = {world | time <-0, start <- world.dest}
-    in case road of
-        3 -> if (world.dir == East || world.dir == West) then advance world'
-             else {world | phase <- Crash}
-        2 -> if (world.dir == North || world.dir == South) then advance world'
-             else {world | phase <- Crash}
-        4 -> if (world.dir == North) then advance {world' | dir <- East}
-             else {world | phase <- Crash}
-        5 -> if (world.dir == East) then advance {world' | dir <- South}
-             else {world | phase <- Crash}
-        6 -> if (world.dir == West) then advance {world' | dir <- North}
-             else {world | phase <- Crash}
-        7 -> if (world.dir == South) then advance {world' | dir <- West}
-             else {world | phase <- Crash}
-        _ -> {world | phase <- Crash}
+    in case Dict.get road rules of
+            Just rule ->
+                let found = any (\x -> world.dir == x) rule.dirs
+                    (choice,seed) = Random.generate (Random.int 0 3) world.seed
+                in if found then advance {world' | dir <- rule.turn choice world.dir, seed <- seed}
+                   else {world' | phase <- Crash }
+            Nothing -> {world' | phase <- Crash }
 
 update u world =
     case u of
@@ -107,7 +148,7 @@ update u world =
             let tile = whichTile world coords
                 (row,col) = tile
                 index = (row-1)*gridSize+(col-1)
-                (next,seed) = Random.generate (Random.int 1 7) world.seed
+                (next,seed) = Random.generate (Random.int 2 12) world.seed
             in {world | tiles <- Array.set index world.next world.tiles, seed <- seed, next <- next}
         Frame dt ->
             if world.time > world.when then
@@ -138,10 +179,6 @@ size = 70
 gridSize = 9
 
 depth (row,col) = row - col
-        
-square (row,col) = move (col*size,-row*size) <|
-                    group [outlined (solid white) <| rect size size, text <|
-                           Text.height 24 <| Text.color white <| fromString <| toString <| depth (row,col)]
 
 applyAll = foldl Transform2D.multiply Transform2D.identity
 
@@ -149,12 +186,6 @@ grid fn =
     let positions = cartesian (,) [1..gridSize] [1..gridSize]
         depthSorted = sortBy depth positions
     in map fn depthSorted
-
-matrix =
-    let offset = Transform2D.translation (-gridSize*size/2) (gridSize*size/2)
-        aroundHorizontal = Transform2D.matrix 1 0 0 (cos (degrees 60)) 0 -(sin (degrees 60))
-        aroundNormal = Transform2D.matrix (cos (degrees 45)) -(sin (degrees 45)) (sin (degrees 45)) (cos (degrees 45)) 0 0
-    in applyAll [offset, aroundNormal, aroundHorizontal]
 
 placeTile (row,col) =
     let x = 50*(2-gridSize) + (row-1 + col-1) * 50
@@ -168,7 +199,7 @@ displayTile world xy =
     in renderTile xy state
 
 renderTile xy state =
-    case (Dict.get state tileFiles) of
+    case Dict.get state tileFiles of
         Just src -> move (placeTile xy) <| toForm (image 100 65 src)
         _ -> group []
 
@@ -186,11 +217,10 @@ display world =
     let (w',h') = (toFloat world.view.w, toFloat world.view.h)
         backdrop = filled black <| rect w' h'
         game = collage world.view.w world.view.h <|
-        [backdrop,
-         groupTransform matrix (grid square)]
-         ++ grid (displayTile world)
-         ++ [renderTile (5,-1) world.next]
-         ++ [displayCar world]
+        backdrop ::
+        (grid (displayTile world)
+            ++ [renderTile (5,-1) world.next]
+            ++ [displayCar world])
     in layers <| game :: (overlay world)
 
 -- Signals
