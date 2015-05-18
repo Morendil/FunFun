@@ -9,6 +9,7 @@ import Text exposing (..)
 import AnimationFrame exposing (..)
 
 import Transform2D
+import Transform2D.Extra exposing (..)
 import Window
 import Mouse
 
@@ -182,17 +183,20 @@ gridSize = 9
 
 depth (row,col) = row - col
 
-applyAll = foldl Transform2D.multiply Transform2D.identity
-
 grid fn =
     let positions = cartesian (,) [1..gridSize] [1..gridSize]
         depthSorted = sortBy depth positions
     in map fn depthSorted
 
-placeTile (row,col) =
-    let x = 50*(2-gridSize) + (row-1 + col-1) * 50
-        y = 6 + (col-row) * 25
-    in (x,y)
+applyAll = List.foldl Transform2D.multiply Transform2D.identity
+
+matrix =
+    let offset = Transform2D.translation (-gridSize*size/2) (gridSize*size/2)
+        aroundHorizontal = Transform2D.matrix 1 0 0 (cos (degrees 60)) 0 -(sin (degrees 60))
+        aroundNormal = Transform2D.matrix (cos (degrees 45)) -(sin (degrees 45)) (sin (degrees 45)) (cos (degrees 45)) 0 0
+    in applyAll [offset, aroundNormal, aroundHorizontal]
+
+placeTile (row,col) = transform matrix (col*size,-row*size)
 
 displayTile world xy =
     let (row,col) = xy
