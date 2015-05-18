@@ -45,7 +45,9 @@ start u =
                 car = placeTile (1,1),
                 when = 50,
                 dir = East,
-                time = 0
+                time = 0,
+                level = 1,
+                goal = 32
             }
 
 tileFiles = Dict.fromList [
@@ -137,7 +139,7 @@ arriveAt tile world =
             Just rule ->
                 let found = any (\x -> world.dir == x) rule.dirs
                     (choice,seed) = Random.generate (Random.int 0 3) world.seed
-                in if found then advance {world' | dir <- rule.turn choice world.dir, seed <- seed}
+                in if found then advance {world' | dir <- rule.turn choice world.dir, seed <- seed, goal <- max 0 (world.goal-1)}
                    else {world' | phase <- Crash }
             Nothing -> {world' | phase <- Crash }
 
@@ -206,6 +208,13 @@ renderTile xy state =
 overlayStyle = { typeface = [], height = Just 24, color = white, bold = True, italic = False, line = Nothing}
 
 overlay world =
+    [
+        container world.view.w world.view.h middle <|
+        (container (gridSize*100) (gridSize*65) topLeft <|
+                (flow down [leftAligned <| style overlayStyle <| fromString ("Level: "++(toString world.level)),
+                            leftAligned <| style overlayStyle <| fromString ("To go: "++(toString world.goal))])
+            )
+    ] ++
     if world.phase == Crash then [container world.view.w world.view.h middle <| centered <| style overlayStyle <| fromString "You Crashed!"]
     else []
 
