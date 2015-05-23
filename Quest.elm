@@ -192,8 +192,8 @@ applyAll = List.foldl Transform2D.multiply Transform2D.identity
 
 matrix =
     let offset = Transform2D.translation (-gridSize*size/2) (gridSize*size/2)
-        aroundHorizontal = Transform2D.matrix 1 0 0 (cos (degrees 60)) 0 -(sin (degrees 60))
-        aroundNormal = Transform2D.matrix (cos (degrees 45)) -(sin (degrees 45)) (sin (degrees 45)) (cos (degrees 45)) 0 0
+        aroundHorizontal = Transform2D.scaleY 0.5
+        aroundNormal = Transform2D.rotation (degrees 45)
     in applyAll [offset, aroundNormal, aroundHorizontal]
 
 placeTile (row,col) = transform matrix (col*size,-row*size)
