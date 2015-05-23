@@ -17,7 +17,7 @@ start u =
         Viewport (w,h) -> {
                 view={w=w,h=h},
                 board = Array.fromList (List.repeat (height*width) 0),
-                piece = Array.fromList [1],
+                piece = [(0,0)],
                 coords = (width//2,height-1),
                 speed = 500,
                 time = 0
@@ -31,12 +31,17 @@ size = 20
 
 type Update = Viewport (Int, Int) | Click (Int,Int) | Frame Float
 
+constrain _ _ (x,y) = (x, max 1 y)
+
+fall (x,y) = (x, y-1)
+
 update u world = 
     case u of
         Frame dt ->
             let world' = {world | time <- world.time + dt}
             in if world'.time > world.speed then
-                {world' | coords <- (fst world.coords, max 1 (snd world.coords-1)), time <- 0}
+                let coords' = constrain world.piece world.board (fall world.coords)
+                in {world' | coords <- coords', time <- 0}
             else world'
         _ -> world
 
