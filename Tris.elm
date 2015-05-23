@@ -6,6 +6,7 @@ import Graphics.Collage exposing (..)
 import Color exposing (..)
 
 import Window
+import Keyboard
 import Signal.Extra
 
 import Array
@@ -29,11 +30,12 @@ size = 20
 
 -- Update
 
-type Update = Viewport (Int, Int) | Click (Int,Int) | Frame Float
+type Update = Viewport (Int, Int) | Click (Int,Int) | Frame Float | Control {x:Int, y:Int}
 
-constrain _ _ (x,y) = (x, max 1 y)
+constrain _ _ (x,y) = (max 1 x, max 1 y)
 
 fall (x,y) = (x, y-1)
+shift keys (x,y) = (x+keys.x,y)
 
 update u world = 
     case u of
@@ -43,6 +45,9 @@ update u world =
                 let coords' = constrain world.piece world.board (fall world.coords)
                 in {world' | coords <- coords', time <- 0}
             else world'
+        Control keys ->
+            let coords' = constrain world.piece world.board (shift keys world.coords)
+            in {world | coords <- coords'}
         _ -> world
 
 
@@ -52,16 +57,17 @@ display world =
     let (w',h') = (toFloat world.view.w, toFloat world.view.h)
         backdrop = collage world.view.w world.view.h <| [filled black <| rect w' h']
         (x,y) = (toFloat (fst world.coords), toFloat (snd world.coords))
-        items = [move (x*size-(width*size)/2,y*size-(height*size)/2-size/2) <| filled red <| rect size size]
+        items = [move (x*size-(width*size)/2-size/2,y*size-(height*size)/2-size/2) <| filled red <| rect size size]
         board = container world.view.w world.view.h middle <| collage (width*size) (height*size) items
     in  layers [backdrop, board]
 
 -- Signals
 
+controls = Signal.map Control Keyboard.arrows
 dimensions = Signal.map Viewport (Window.dimensions)
 frames = Signal.map Frame frame
 
-inputs = Signal.mergeMany [dimensions,frames]
+inputs = Signal.mergeMany [dimensions,frames,controls]
 
 main =
     let states = Signal.Extra.foldp' update start inputs
