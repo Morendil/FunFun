@@ -36,7 +36,11 @@ constrain _ _ (x,y) = (pin x 1 width, pin y 1 height)
 pin x low high = min (max low x) high
 
 fall (x,y) = (x, y-1)
-shift keys (x,y) = (x+keys.x,y)
+shift keys (x,y) = (x+keys.x,y+(min 0 keys.y))
+
+apply movement world = 
+    let coords' = constrain world.piece world.board (movement world.coords)
+    in {world | coords <- coords'}
 
 update u world = 
     case u of
