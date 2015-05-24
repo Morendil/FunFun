@@ -32,7 +32,8 @@ size = 20
 
 type Update = Viewport (Int, Int) | Click (Int,Int) | Frame Float | Control {x:Int, y:Int}
 
-constrain _ _ (x,y) = (max 1 x, max 1 y)
+constrain _ _ (x,y) = (pin x 1 width, pin y 1 height)
+pin x low high = min (max low x) high
 
 fall (x,y) = (x, y-1)
 shift keys (x,y) = (x+keys.x,y)
