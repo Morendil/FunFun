@@ -20,7 +20,7 @@ start u =
         Viewport (w,h) -> {
                 view={w=w,h=h},
                 board = Array.fromList (List.repeat (height*width) 0),
-                piece = [(0,0),(0,1),(0,2),(0,3),(0,4)],
+                piece = [(0,0)],
                 coords = (width//2,height-1),
                 speed = 500,
                 time = 0
@@ -46,8 +46,16 @@ apply movement world =
     let coords' = constrain world.piece world.board (movement world.coords)
     in {world | coords <- coords'}
 
+transfer board (x,y) piece =
+    Array.set ((x-1)*width + (y-1)*height) 1 board
+
+freeze world =
+    {world | coords <- (width//2,height-1), piece <- [(0,0)], board <- transfer world.board world.coords world.piece}
+
 drop world =
-    apply fall {world | time <- 0}
+    let world' = apply fall {world | time <- 0}
+    in if world.coords == world'.coords then freeze world'
+    else world'
 
 update u world = 
     case u of
@@ -62,14 +70,19 @@ update u world =
 
 -- Display
 
+displayTile coords offset =
+    let (x,y) = addPair coords offset
+    in move (x*size-(width*size)/2-size/2,y*size-(height*size)/2-size/2) <| filled red <| rect (size-0.5) (size-0.5)
+
 displayPiece world =
     let piece = (toFloat (fst world.coords), toFloat (snd world.coords))
-        displayTile offset =
-            let (x,y) = addPair piece offset
-            in move (x*size-(width*size)/2-size/2,y*size-(height*size)/2-size/2) <| filled red <| rect (size-0.5) (size-0.5)
-    in map displayTile world.piece
+    in map (displayTile piece) world.piece
 
-displayBoard = always []
+displayBoard world = 
+    let board = world.board
+        valueAt index = let (Just value) = Array.get index board in value
+        tiles = filter (\i -> (valueAt i) > 0) [0..(height*width)-1]
+    in map (\index -> displayTile (toFloat (index//width)+1,toFloat (index%width)+1) (0,0)) tiles
 
 display world =
     let (w',h') = (toFloat world.view.w, toFloat world.view.h)
