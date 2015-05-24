@@ -3,7 +3,9 @@ module Tris where
 import AnimationFrame exposing (..)
 import Graphics.Element exposing (..)
 import Graphics.Collage exposing (..)
+import List exposing (..)
 import Color exposing (..)
+import Generic exposing (..)
 
 import Window
 import Keyboard
@@ -18,7 +20,7 @@ start u =
         Viewport (w,h) -> {
                 view={w=w,h=h},
                 board = Array.fromList (List.repeat (height*width) 0),
-                piece = [(0,0)],
+                piece = [(0,0),(0,1),(0,2),(0,3),(0,4)],
                 coords = (width//2,height-1),
                 speed = 500,
                 time = 0
@@ -38,28 +40,42 @@ pin x low high = min (max low x) high
 fall (x,y) = (x, y-1)
 shift keys (x,y) = (x+keys.x,y+(min 0 keys.y))
 
+rotatePiece = identity
+
 apply movement world = 
     let coords' = constrain world.piece world.board (movement world.coords)
     in {world | coords <- coords'}
+
+drop world =
+    apply fall {world | time <- 0}
 
 update u world = 
     case u of
         Frame dt ->
             let world' = {world | time <- world.time + dt}
-            in if world'.time > world'.speed then apply fall {world' | time <- 0}
+            in if world'.time > world'.speed then drop world'
             else world'
-        Control keys -> apply (shift keys) world
+        Control keys ->
+            if keys.y > 0 then rotatePiece world
+            else apply (shift keys) world
         _ -> world
-
 
 -- Display
 
+displayPiece world =
+    let piece = (toFloat (fst world.coords), toFloat (snd world.coords))
+        displayTile offset =
+            let (x,y) = addPair piece offset
+            in move (x*size-(width*size)/2-size/2,y*size-(height*size)/2-size/2) <| filled red <| rect (size-0.5) (size-0.5)
+    in map displayTile world.piece
+
+displayBoard = always []
+
 display world =
     let (w',h') = (toFloat world.view.w, toFloat world.view.h)
-        backdrop = collage world.view.w world.view.h <| [filled black <| rect w' h']
-        (x,y) = (toFloat (fst world.coords), toFloat (snd world.coords))
-        items = [move (x*size-(width*size)/2-size/2,y*size-(height*size)/2-size/2) <| filled red <| rect size size]
-        board = container world.view.w world.view.h middle <| collage (width*size) (height*size) items
+        backdrop = collage world.view.w world.view.h <| [filled black <| rect w' h']        
+        items = displayPiece world ++ displayBoard world
+        board = container world.view.w world.view.h middle <| collage (width*size) ((height+6)*size) items
     in  layers [backdrop, board]
 
 -- Signals
