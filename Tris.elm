@@ -46,13 +46,9 @@ update u world =
     case u of
         Frame dt ->
             let world' = {world | time <- world.time + dt}
-            in if world'.time > world.speed then
-                let coords' = constrain world.piece world.board (fall world.coords)
-                in {world' | coords <- coords', time <- 0}
+            in if world'.time > world'.speed then apply fall {world' | time <- 0}
             else world'
-        Control keys ->
-            let coords' = constrain world.piece world.board (shift keys world.coords)
-            in {world | coords <- coords'}
+        Control keys -> apply (shift keys) world
         _ -> world
 
 
