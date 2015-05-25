@@ -4,6 +4,9 @@ import List exposing (foldr,repeat,map,map2,append,concatMap)
 
 -- GENERIC
 
+addPair (x1,y1) (x2,y2) =
+    (x1+x2,y1+y2)
+
 cartesian fn list1 list2 =
     concatMap (\x -> map (fn x) list2) list1
 
