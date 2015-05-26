@@ -20,7 +20,7 @@ start u =
         Viewport (w,h) -> {
                 view={w=w,h=h},
                 board = Array.fromList (List.repeat (height*width) 0),
-                piece = [(0,0)],
+                piece = [(0,0),(0,1),(0,2)],
                 coords = (width//2,height-1),
                 speed = 500,
                 time = 0
@@ -47,7 +47,8 @@ apply movement world =
     in {world | coords <- coords'}
 
 transfer board (x,y) piece =
-    Array.set ((x-1)*width + (y-1)*height) 1 board
+    let transferTile (ox,oy) board = Array.set (ox+x-1+(oy+y-1)*width) 1 board
+    in foldr transferTile board piece
 
 freeze world =
     {world | coords <- (width//2,height-1), piece <- [(0,0)], board <- transfer world.board world.coords world.piece}
@@ -71,7 +72,8 @@ update u world =
 -- Display
 
 displayTile coords offset =
-    let (x,y) = addPair coords offset
+    let (ox,oy) = offset
+        (x,y) = addPair coords (toFloat ox, toFloat oy)
     in move (x*size-(width*size)/2-size/2,y*size-(height*size)/2-size/2) <| filled red <| rect (size-0.5) (size-0.5)
 
 displayPiece world =
@@ -82,7 +84,7 @@ displayBoard world =
     let board = world.board
         valueAt index = let (Just value) = Array.get index board in value
         tiles = filter (\i -> (valueAt i) > 0) [0..(height*width)-1]
-    in map (\index -> displayTile (toFloat (index//width)+1,toFloat (index%width)+1) (0,0)) tiles
+    in map (\index -> displayTile (toFloat (index%width)+1,toFloat (index//width)+1) (0,0)) tiles
 
 display world =
     let (w',h') = (toFloat world.view.w, toFloat world.view.h)
