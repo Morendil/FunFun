@@ -34,7 +34,15 @@ size = 20
 
 type Update = Viewport (Int, Int) | Click (Int,Int) | Frame Float | Control {x:Int, y:Int}
 
-constrain _ _ (x,y) = (pin x 1 width, pin y 1 height)
+constrain movement _ board (x,y) =
+    let (x',y') = movement (x,y)
+        try = (pin x' 1 width, pin y' 1 height)
+    in if try /= (x',y') then (x,y) else
+        let (Just value) = Array.get (x'-1+(y'-1)*width) board
+            hit = value /= 0
+        in if hit then (x,y) else (x',y')
+
+
 pin x low high = min (max low x) high
 
 fall (x,y) = (x, y-1)
@@ -43,7 +51,7 @@ shift keys (x,y) = (x+keys.x,y+(min 0 keys.y))
 rotatePiece = identity
 
 apply movement world = 
-    let coords' = constrain world.piece world.board (movement world.coords)
+    let coords' = constrain movement world.piece world.board world.coords
     in {world | coords <- coords'}
 
 transfer board (x,y) piece =
