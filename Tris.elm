@@ -48,7 +48,8 @@ pin x low high = min (max low x) high
 fall (x,y) = (x, y-1)
 shift keys (x,y) = (x+keys.x,y+(min 0 keys.y))
 
-rotatePiece = identity
+flip (x,y) = (y,x)
+rotatePiece world = {world | piece <- map flip world.piece}
 
 apply movement world = 
     let coords' = constrain movement world.piece world.board world.coords
@@ -59,7 +60,7 @@ transfer board (x,y) piece =
     in foldr transferTile board piece
 
 freeze world =
-    {world | coords <- (width//2,height-1), piece <- [(0,0)], board <- transfer world.board world.coords world.piece}
+    {world | coords <- (width//2,height-1), board <- transfer world.board world.coords world.piece}
 
 drop world =
     let world' = apply fall {world | time <- 0}
