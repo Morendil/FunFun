@@ -34,13 +34,14 @@ size = 20
 
 type Update = Viewport (Int, Int) | Click (Int,Int) | Frame Float | Control {x:Int, y:Int}
 
-constrain movement _ board (x,y) =
+constrain movement piece board (x,y) =
     let (x',y') = movement (x,y)
         try = (pin x' 1 width, pin y' 1 height)
     in if try /= (x',y') then (x,y) else
-        let (Just value) = Array.get (x'-1+(y'-1)*width) board
-            hit = value /= 0
-        in if hit then (x,y) else (x',y')
+        let hit (ox,oy) =
+            let value = Array.get (ox+x'-1+(oy+y'-1)*width) board
+            in not (value == Just 0)
+        in if any hit piece then (x,y) else (x',y')
 
 
 pin x low high = min (max low x) high
