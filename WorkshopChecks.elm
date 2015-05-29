@@ -1,6 +1,8 @@
 import Check exposing (..)
+import Shrink exposing (..)
 import Check.Investigator exposing (..)
 import Check.Runner.Browser exposing (..)
+import Random.Int exposing (..)
 
 square : Int -> Int
 square x = x * x
@@ -15,7 +17,7 @@ claim_squaring_root_yields_original =
   `is`
     (identity)
   `for`
-    int
+    investigator positiveInt Shrink.int
 
 suite_math =
   suite "Math suite"
