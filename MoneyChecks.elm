@@ -6,6 +6,22 @@ import Random exposing (..)
 import Random.Int exposing (..)
 import Random.Float exposing (..)
 
+filteredTuple : ((a,b) -> Bool) -> (Investigator a, Investigator b) -> Investigator (a, b)
+filteredTuple filter (invA, invB) =
+  investigator
+    (conditionalZip filter invA.generator invB.generator)
+    (Shrink.tuple (invA.shrinker, invB.shrinker))
+
+conditionalZip : ((a,b) -> Bool) -> Generator a -> Generator b -> Generator (a,b)
+conditionalZip filter a_gen b_gen =
+    customGenerator (\ seed ->
+        let (candidate_a, seed_a) = generate a_gen seed
+            (candidate_b, seed_b) = generate b_gen seed_a
+            candidate = (candidate_a,candidate_b)
+        in if filter candidate then (candidate,seed_b)
+           else generate (conditionalZip filter a_gen b_gen) seed_b
+    )
+
 type Currency = EUR | GBP | USD
 type alias Money = {currency:Currency, amount:Float}
 
@@ -35,7 +51,7 @@ moneyClaim =
       `is`
         (always Nothing)
       `for`
-        tuple (money, money)
+        filteredTuple (\(money1,money2) -> money1.currency /= money2.currency) (money, money)
 
 moneySuite = suite "Money suite" [moneyClaim]
 
