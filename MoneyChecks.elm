@@ -41,7 +41,9 @@ moneyGen seed =
 
 money = investigator (customGenerator moneyGen) noShrink
 
-add money1 money2 = Nothing
+add money1 money2 =
+    if money1.currency == money2.currency then Just {currency=money1.currency, amount=money1.amount+money2.amount}
+    else Nothing
 
 moneyClaim =
     claim
@@ -51,9 +53,21 @@ moneyClaim =
       `is`
         (always Nothing)
       `for`
-        filteredTuple (\(money1,money2) -> money1.currency /= money2.currency) (money, money)
+        let differentCurrencies = (\(money1,money2) -> money1.currency /= money2.currency)
+        in filteredTuple differentCurrencies (money, money)
 
-moneySuite = suite "Money suite" [moneyClaim]
+moneyClaim2 =
+    claim
+        "Adding identical currencies adds amounts"
+      `that`
+        (\(money1,money2) -> add money1 money2)
+      `is`
+        (\(money1,money2) -> Just {currency=money1.currency, amount=money1.amount+money2.amount})
+      `for`
+        let sameCurrencies = (\(money1,money2) -> money1.currency == money2.currency)
+        in filteredTuple sameCurrencies (money, money)
+
+moneySuite = suite "Money suite" [moneyClaim,moneyClaim2]
 
 result = quickCheck moneySuite
 
