@@ -7,6 +7,7 @@ import List exposing (..)
 import Color exposing (..)
 import Generic exposing (..)
 
+import Random exposing (..)
 import Window
 import Keyboard
 import Signal.Extra
@@ -17,22 +18,43 @@ import Array
 
 start u =
     case u of
-        Viewport (w,h) -> {
+        Viewport (w,h) -> nextPiece {
                 view={w=w,h=h},
                 board = Array.fromList (List.repeat (height*width) 0),
-                piece = [(0,0),(0,1),(0,2)],
+                piece = [],
                 coords = (width//2,height-1),
                 speed = 500,
-                time = 0
+                time = 0,
+                seed = initialSeed 0
         }
 
 height = 20
 width = 10
 size = 20
 
+tetrominoes = [
+    [(-2,0),(-1,0),(0,0),(1,0)], -- I
+    [(-1,1),(-1,0),(0,0),(1,0)], -- J
+    [(-1,0),(0,0),(1,0),(1,1)], -- L
+    [(-1,0),(-1,1),(0,0),(0,1)], -- O
+    [(-1,0),(0,0),(0,1),(1,1)], -- S
+    [(-1,0),(0,0),(0,1),(1,0)], -- T
+    [(-1,1),(0,0),(0,1),(1,0)]] -- Z
+
 -- Update
 
 type Update = Viewport (Int, Int) | Click (Int,Int) | Frame Float | Control {x:Int, y:Int}
+
+nextPiece world =
+    let (piece', seed') = generate tetrominoGen world.seed
+    in {world | piece <- piece', seed <- seed'}
+
+picker list seed =
+    let (index,seed') = generate (int 0 ((length list) - 1)) seed
+        (Just value) = Array.get index (Array.fromList list)
+    in (value, seed')
+
+tetrominoGen = customGenerator <| picker tetrominoes
 
 constrain movement piece board (x,y) =
     let (x',y') = movement (x,y)
@@ -65,7 +87,7 @@ freeze world =
 
 drop world =
     let world' = apply fall {world | time <- 0}
-    in if world.coords == world'.coords then freeze world'
+    in if world.coords == world'.coords then nextPiece <| freeze world'
     else world'
 
 update u world = 
