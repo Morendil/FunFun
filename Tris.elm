@@ -58,15 +58,13 @@ tetrominoGen = customGenerator <| picker tetrominoes
 
 constrain movement piece board (x,y) =
     let (x',y') = movement (x,y)
-        try = (pin x' 1 width, pin y' 1 height)
-    in if try /= (x',y') then (x,y) else
-        let hit (ox,oy) =
+        hit (ox,oy) =
             let value = Array.get (ox+x'-1+(oy+y'-1)*width) board
             in not (value == Just 0)
-        in if any hit piece then (x,y) else (x',y')
-
-
-pin x low high = min (max low x) high
+        out (ox,oy) =
+            (ox+x' < 1) || (ox+x' > width) ||
+            (oy+y' < 1) || (oy+y' > height)
+    in if (any hit piece) || (any out piece) then (x,y) else (x',y')
 
 fall (x,y) = (x, y-1)
 shift keys (x,y) = (x+keys.x,y+(min 0 keys.y))
