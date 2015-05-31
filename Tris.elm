@@ -47,7 +47,7 @@ type Update = Viewport (Int, Int) | Click (Int,Int) | Frame Float | Control {x:I
 
 nextPiece world =
     let (piece', seed') = generate tetrominoGen world.seed
-    in {world | piece <- piece', seed <- seed'}
+    in {world | coords <- (width//2,height-1), piece <- piece', seed <- seed'}
 
 picker list seed =
     let (index,seed') = generate (int 0 ((length list) - 1)) seed
@@ -81,11 +81,12 @@ transfer board (x,y) piece =
     in foldr transferTile board piece
 
 freeze world =
-    {world | coords <- (width//2,height-1), board <- transfer world.board world.coords world.piece}
+    {world | board <- transfer world.board world.coords world.piece}
 
 drop world =
     let world' = apply fall {world | time <- 0}
-    in if world.coords == world'.coords then nextPiece <| freeze world'
+        stopped = world.coords == world'.coords
+    in if stopped then nextPiece <| freeze world'
     else world'
 
 update u world = 
