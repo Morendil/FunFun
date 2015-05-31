@@ -69,7 +69,7 @@ constrain movement piece board (x,y) =
 fall (x,y) = (x, y-1)
 shift keys (x,y) = (x+keys.x,y+(min 0 keys.y))
 
-flip (x,y) = (y,x)
+flip (x,y) = (y,-x)
 rotatePiece world = {world | piece <- map flip world.piece}
 
 apply movement world = 
