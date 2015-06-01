@@ -56,25 +56,28 @@ picker list seed =
 
 tetrominoGen = customGenerator <| picker tetrominoes
 
-constrain movement piece board (x,y) =
-    let (x',y') = movement (x,y)
-        hit (ox,oy) =
+valid piece board (x',y') =
+    let hit (ox,oy) =
             let value = Array.get (ox+x'-1+(oy+y'-1)*width) board
             in not (value == Just 0)
         out (ox,oy) =
             (ox+x' < 1) || (ox+x' > width) ||
             (oy+y' < 1) || (oy+y' > height)
-    in if (any hit piece) || (any out piece) then (x,y) else (x',y')
+    in not ((any hit piece) || (any out piece))
 
 fall (x,y) = (x, y-1)
 shift keys (x,y) = (x+keys.x,y+(min 0 keys.y))
 
 flip (x,y) = (y,-x)
-rotatePiece world = {world | piece <- map flip world.piece}
+rotatePiece world =
+    let piece' = map flip world.piece
+        ok = valid piece' world.board world.coords
+    in if ok then {world | piece <- piece'} else world
 
 apply movement world = 
-    let coords' = constrain movement world.piece world.board world.coords
-    in {world | coords <- coords'}
+    let coords' = movement world.coords
+        ok = valid world.piece world.board coords'
+    in if ok then {world | coords <- coords'} else world
 
 transfer board (x,y) piece =
     let transferTile (ox,oy) board = Array.set (ox+x-1+(oy+y-1)*width) 1 board
