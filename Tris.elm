@@ -86,10 +86,21 @@ transfer board (x,y) piece =
 freeze world =
     {world | board <- transfer world.board world.coords world.piece}
 
+row board r =
+    Array.slice (r*width) ((r+1)*width) board
+
+incomplete row =
+    any (\x -> x == 0) (Array.toList row)
+
+clean world =
+    let start = foldr Array.append Array.empty <| filter incomplete <| map (row world.board) [0..(height-1)]
+        board' = Array.append start (Array.repeat ((width*height)-(Array.length start)) 0)
+    in {world | board <- board'}
+
 drop world =
     let world' = apply fall {world | time <- 0}
         stopped = world.coords == world'.coords
-    in if stopped then nextPiece <| freeze world'
+    in if stopped then nextPiece <| clean <| freeze world'
     else world'
 
 update u world = 
