@@ -68,11 +68,14 @@ valid piece board (x',y') =
 fall (x,y) = (x, y-1)
 shift keys (x,y) = (x+keys.x,y+(min 0 keys.y))
 
-flip (x,y) = (y,-x)
+rotate (x,y) = (y,-x)
 rotatePiece world =
-    let piece' = map flip world.piece
-        ok = valid piece' world.board world.coords
-    in if ok then {world | piece <- piece'} else world
+    let piece' = map rotate world.piece
+        maybeWallkick = map (\by -> shift {x=by,y=0} world.coords) [0,-1,1]
+        retain = head <| filter (valid piece' world.board) maybeWallkick
+    in case retain of
+        Just placed -> {world | piece <- piece', coords <- placed}
+        Nothing -> world
 
 apply movement world = 
     let coords' = movement world.coords
