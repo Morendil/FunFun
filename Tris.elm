@@ -33,13 +33,13 @@ width = 10
 size = 20
 
 tetrominoes = [
-    [(-2,0),(-1,0),(0,0),(1,0)], -- I
-    [(-1,1),(-1,0),(0,0),(1,0)], -- J
-    [(-1,0),(0,0),(1,0),(1,1)], -- L
-    [(-1,0),(-1,1),(0,0),(0,1)], -- O
-    [(-1,0),(0,0),(0,1),(1,1)], -- S
-    [(-1,0),(0,0),(0,1),(1,0)], -- T
-    [(-1,1),(0,0),(0,1),(1,0)]] -- Z
+    {shape=[(-2,0),(-1,0),(0,0),(1,0)],color=1}, -- I
+    {shape=[(-1,1),(-1,0),(0,0),(1,0)],color=2}, -- J
+    {shape=[(-1,0),(0,0),(1,0),(1,1)],color=3}, -- L
+    {shape=[(-1,0),(-1,1),(0,0),(0,1)],color=4}, -- O
+    {shape=[(-1,0),(0,0),(0,1),(1,1)],color=5}, -- S
+    {shape=[(-1,0),(0,0),(0,1),(1,0)],color=6}, -- T
+    {shape=[(-1,1),(0,0),(0,1),(1,0)],color=7}] -- Z
 
 -- Update
 
@@ -70,21 +70,23 @@ shift keys (x,y) = (x+keys.x,y+(min 0 keys.y))
 
 rotate (x,y) = (y,-x)
 rotatePiece world =
-    let piece' = map rotate world.piece
+    let piece = world.piece
+        shape' = map rotate piece.shape
+        piece' = {piece | shape <- shape'}
         maybeWallkick = map (\by -> shift {x=by,y=0} world.coords) [0,-1,1]
-        retain = head <| filter (valid piece' world.board) maybeWallkick
+        retain = head <| filter (valid shape' world.board) maybeWallkick
     in case retain of
         Just placed -> {world | piece <- piece', coords <- placed}
         Nothing -> world
 
 apply movement world = 
     let coords' = movement world.coords
-        ok = valid world.piece world.board coords'
+        ok = valid world.piece.shape world.board coords'
     in if ok then {world | coords <- coords'} else world
 
 transfer board (x,y) piece =
-    let transferTile (ox,oy) board = Array.set (ox+x-1+(oy+y-1)*width) 1 board
-    in foldr transferTile board piece
+    let transferTile (ox,oy) board = Array.set (ox+x-1+(oy+y-1)*width) piece.color board
+    in foldr transferTile board piece.shape
 
 freeze world =
     {world | board <- transfer world.board world.coords world.piece}
@@ -119,20 +121,21 @@ update u world =
 
 -- Display
 
-displayTile coords offset =
+displayTile coords kind offset =
     let (ox,oy) = offset
         (x,y) = addPair coords (toFloat ox, toFloat oy)
-    in move (x*size-(width*size)/2-size/2,y*size-(height*size)/2-size/2) <| filled red <| rect (size-0.5) (size-0.5)
+        (Just color) = Array.get (kind-1) (Array.fromList [red,orange,yellow,green,blue,purple,brown])
+    in move (x*size-(width*size)/2-size/2,y*size-(height*size)/2-size/2) <| filled color <| rect (size-0.5) (size-0.5)
 
 displayPiece world =
     let piece = (toFloat (fst world.coords), toFloat (snd world.coords))
-    in map (displayTile piece) world.piece
+    in map (displayTile piece world.piece.color) world.piece.shape
 
 displayBoard world = 
     let board = world.board
         valueAt index = let (Just value) = Array.get index board in value
         tiles = filter (\i -> (valueAt i) > 0) [0..(height*width)-1]
-    in map (\index -> displayTile (toFloat (index%width)+1,toFloat (index//width)+1) (0,0)) tiles
+    in map (\index -> displayTile (toFloat (index%width)+1,toFloat (index//width)+1) (valueAt index) (0,0)) tiles
 
 display world =
     let (w',h') = (toFloat world.view.w, toFloat world.view.h)
