@@ -5,6 +5,7 @@ import Graphics.Element exposing (..)
 import Graphics.Collage exposing (..)
 import List exposing (..)
 import Color exposing (..)
+import Text exposing (..)
 import Generic exposing (..)
 
 import Random exposing (..)
@@ -25,7 +26,9 @@ start u =
                 coords = (width//2,height-1),
                 speed = 500,
                 time = 0,
-                seed = initialSeed 0
+                seed = initialSeed 0,
+                level = 1,
+                score = 0
         }
 
 height = 20
@@ -110,6 +113,7 @@ drop world =
 
 update u world = 
     case u of
+        Viewport vp -> updateViewport vp world
         Frame dt ->
             let world' = {world | time <- world.time + dt}
             in if world'.time > world'.speed then drop world'
@@ -118,6 +122,11 @@ update u world =
             if keys.y > 0 then rotatePiece world
             else apply (shift keys) world
         _ -> world
+
+updateViewport (w,h) world =
+    let view = world.view
+        view' = {view | w<-w,h<-h}
+    in {world | view <- view'}
 
 -- Display
 
@@ -137,12 +146,25 @@ displayBoard world =
         tiles = filter (\i -> (valueAt i) > 0) [0..(height*width)-1]
     in map (\index -> displayTile (toFloat (index%width)+1,toFloat (index//width)+1) (valueAt index) (0,0)) tiles
 
+overlayStyle = { typeface = [], height = Just 24, color = white, bold = True, italic = False, line = Nothing}
+
+overlay world =
+    [
+        container world.view.w world.view.h middle <|
+        (container (size*12) (size*30) topLeft <|
+                (flow down [leftAligned <| style overlayStyle <| fromString ("Level: "++(toString world.level)),
+                            leftAligned <| style overlayStyle <| fromString ("Score: "++(toString world.score))])
+            ),
+        container world.view.w world.view.h middle <|
+        (container (4+size*10) (4+size*20) topLeft <| collage (4+size*10) (4+size*20) [outlined (solid white) <| rect (4+size*10) (4+size*20)])
+    ]
+
 display world =
     let (w',h') = (toFloat world.view.w, toFloat world.view.h)
-        backdrop = collage world.view.w world.view.h <| [filled black <| rect w' h']        
+        backdrop = collage world.view.w world.view.h <| [filled black <| rect w' h']
         items = displayPiece world ++ displayBoard world
         board = container world.view.w world.view.h middle <| collage (width*size) ((height+6)*size) items
-    in  layers [backdrop, board]
+    in  layers <| [backdrop, board] ++ overlay world
 
 -- Signals
 
