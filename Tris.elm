@@ -28,6 +28,7 @@ start u =
                 time = 0,
                 seed = initialSeed 0,
                 level = 1,
+                lines = 0,
                 score = 0
         }
 
@@ -101,9 +102,11 @@ incomplete row =
     any (\x -> x == 0) (Array.toList row)
 
 clean world =
-    let start = foldr Array.append Array.empty <| filter incomplete <| map (row world.board) [0..(height-1)]
-        board' = Array.append start (Array.repeat ((width*height)-(Array.length start)) 0)
-    in {world | board <- board'}
+    let cleaned = filter incomplete <| map (row world.board) [0..(height-1)]
+        count = height - (length cleaned)
+        start = foldr Array.append Array.empty <| cleaned
+        board' = Array.append start (Array.repeat (width * count) 0)
+    in {world | board <- board', lines <- world.lines + count}
 
 drop world =
     let world' = apply fall {world | time <- 0}
@@ -153,6 +156,7 @@ overlay world =
         container world.view.w world.view.h middle <|
         (container (size*12) (size*30) topLeft <|
                 (flow down [leftAligned <| style overlayStyle <| fromString ("Level: "++(toString world.level)),
+                            leftAligned <| style overlayStyle <| fromString ("Lines: "++(toString world.lines)),
                             leftAligned <| style overlayStyle <| fromString ("Score: "++(toString world.score))])
             ),
         container world.view.w world.view.h middle <|
