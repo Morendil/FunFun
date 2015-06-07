@@ -3,6 +3,7 @@ module Tris where
 import AnimationFrame exposing (..)
 import Graphics.Element exposing (..)
 import Graphics.Collage exposing (..)
+import Maybe exposing (withDefault)
 import List exposing (..)
 import Color exposing (..)
 import Text exposing (..)
@@ -24,6 +25,7 @@ start u =
                 board = Array.fromList (List.repeat (height*width) 0),
                 piece = [],
                 coords = (width//2,height-1),
+                done = False,
                 speed = 500,
                 time = 0,
                 seed = initialSeed 0,
@@ -51,7 +53,9 @@ type Update = Viewport (Int, Int) | Click (Int,Int) | Frame Float | Control {x:I
 
 nextPiece world =
     let (piece', seed') = generate tetrominoGen world.seed
-    in {world | coords <- (width//2,height-1), piece <- piece', seed <- seed'}
+        done' = not (valid piece'.shape world.board (width//2,height-1))
+    in if done' then {world | done <- True}
+        else {world | coords <- (width//2,height-1), piece <- piece', seed <- seed'}
 
 picker list seed =
     let (index,seed') = generate (int 0 ((length list) - 1)) seed
@@ -101,12 +105,22 @@ row board r =
 incomplete row =
     any (\x -> x == 0) (Array.toList row)
 
+score count world =
+    let value = withDefault 800 <| Array.get count (Array.fromList [0,100,300,500,800])
+        lineValue = withDefault 800 <| Array.get count (Array.fromList [0,1,3,5,8])
+        speed' = withDefault 1 <| Array.get world.level (Array.fromList [48,48,43,38,33,28,23,18,13,8,6,5,4,3,2,1])
+        lines' = world.lines + lineValue
+        score' = world.score + value * world.level
+        level' = 1 + (world.lines-1)//5
+    in {world | lines <- lines', score <- score' , speed <- speed' * 1000 / 60, level <- level'}
+
 clean world =
     let cleaned = filter incomplete <| map (row world.board) [0..(height-1)]
         count = height - (length cleaned)
         start = foldr Array.append Array.empty <| cleaned
         board' = Array.append start (Array.repeat (width * count) 0)
-    in {world | board <- board', lines <- world.lines + count}
+        world' = {world | board <- board'}
+    in if count == 0 then world' else score count world'
 
 drop world =
     let world' = apply fall {world | time <- 0}
@@ -151,13 +165,17 @@ displayBoard world =
 
 overlayStyle = { typeface = [], height = Just 24, color = white, bold = True, italic = False, line = Nothing}
 
+infoText = leftAligned << style overlayStyle << fromString
+
 overlay world =
-    [
+    let gameStatus = if world.done then "Game over!" else ""
+    in [
         container world.view.w world.view.h middle <|
-        (container (size*12) (size*30) topLeft <|
-                (flow down [leftAligned <| style overlayStyle <| fromString ("Level: "++(toString world.level)),
-                            leftAligned <| style overlayStyle <| fromString ("Lines: "++(toString world.lines)),
-                            leftAligned <| style overlayStyle <| fromString ("Score: "++(toString world.score))])
+        (container (size*12) (size*32) topLeft <|
+                (flow down <| map infoText [ ("Level: "++(toString world.level)),
+                                             ("Lines: "++(toString world.lines)),
+                                             ("Score: "++(toString world.score)),
+                                             (gameStatus)])
             ),
         container world.view.w world.view.h middle <|
         (container (4+size*10) (4+size*20) topLeft <| collage (4+size*10) (4+size*20) [outlined (solid white) <| rect (4+size*10) (4+size*20)])
