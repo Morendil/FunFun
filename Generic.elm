@@ -4,6 +4,13 @@ import List exposing (foldr,repeat,map,map2,append,concatMap)
 
 -- GENERIC
 
+takeWhile : (a -> Bool) -> List a -> List a
+takeWhile predicate list =
+  case list of
+    []      -> []
+    x::xs   -> if | (predicate x) -> x :: takeWhile predicate xs
+                  | otherwise -> []
+
 addPair (x1,y1) (x2,y2) =
     (x1+x2,y1+y2)
 

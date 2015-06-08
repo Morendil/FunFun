@@ -147,15 +147,25 @@ updateViewport (w,h) world =
 
 -- Display
 
+dim color =
+    let parsed = toRgb color
+    in rgba parsed.red parsed.green parsed.blue 0.3
+
 displayTile coords kind offset =
     let (ox,oy) = offset
         (x,y) = addPair coords (toFloat ox, toFloat oy)
-        (Just color) = Array.get (kind-1) (Array.fromList [red,orange,yellow,green,blue,purple,brown])
+        colors = [red,orange,yellow,green,blue,purple,brown]
+        (Just color) = Array.get (kind-1) (Array.fromList (colors ++ map dim colors))
     in move (x*size-(width*size)/2-size/2,y*size-(height*size)/2-size/2) <| filled color <| rect (size-0.5) (size-0.5)
 
 displayPiece world =
     let piece = (toFloat (fst world.coords), toFloat (snd world.coords))
     in map (displayTile piece world.piece.color) world.piece.shape
+
+displayShadow world =
+    let tries = takeWhile (\n -> valid world.piece.shape world.board (fst world.coords,n)) <| reverse [1..snd world.coords-1]
+        piece = (toFloat (fst world.coords), toFloat (withDefault 50 (head <| reverse tries)))
+    in map (displayTile piece (world.piece.color+7)) world.piece.shape
 
 displayBoard world = 
     let board = world.board
@@ -184,7 +194,7 @@ overlay world =
 display world =
     let (w',h') = (toFloat world.view.w, toFloat world.view.h)
         backdrop = collage world.view.w world.view.h <| [filled black <| rect w' h']
-        items = displayPiece world ++ displayBoard world
+        items = displayPiece world ++ displayShadow world ++ displayBoard world
         board = container world.view.w world.view.h middle <| collage (width*size) ((height+6)*size) items
     in  layers <| [backdrop, board] ++ overlay world
 
