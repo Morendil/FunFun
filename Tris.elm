@@ -162,6 +162,10 @@ displayPiece world =
     let piece = (toFloat (fst world.coords), toFloat (snd world.coords))
     in map (displayTile piece world.piece.color) world.piece.shape
 
+displayNext world =
+    let piece = (6,20)
+    in map (displayTile piece world.piece.color) world.piece.shape
+
 displayShadow world =
     let tries = takeWhile (\n -> valid world.piece.shape world.board (fst world.coords,n)) <| reverse [1..snd world.coords-1]
         piece = (toFloat (fst world.coords), toFloat (withDefault 50 (head <| reverse tries)))
@@ -177,26 +181,28 @@ overlayStyle = { typeface = [], height = Just 24, color = white, bold = True, it
 
 infoText = leftAligned << style overlayStyle << fromString
 
-overlay world =
-    let gameStatus = if world.done then "Game over!" else ""
-    in [
-        container world.view.w world.view.h middle <|
-        (container (size*12) (size*32) topLeft <|
-                (flow down <| map infoText [ ("Level: "++(toString world.level)),
-                                             ("Lines: "++(toString world.lines)),
-                                             ("Score: "++(toString world.score)),
-                                             (gameStatus)])
-            ),
-        container world.view.w world.view.h middle <|
-        (container (4+size*10) (4+size*20) topLeft <| collage (4+size*10) (4+size*20) [outlined (solid white) <| rect (4+size*10) (4+size*20)])
-    ]
+displayScore world =
+    container (4+size*10) 120 topLeft <|
+              (flow down <| map infoText [ ("Level: "++(toString world.level)),
+                                           ("Lines: "++(toString world.lines)),
+                                           ("Score: "++(toString world.score)),
+                                           (if world.done then "Game over!" else "")])
+
+border element =
+    let (width, height) = ((widthOf element)+4, (heightOf element)+4)
+        borderLine = collage width height [outlined (solid white) <| rect (toFloat width) (toFloat height)]
+    in layers <| map (container width height middle) [borderLine, element]
 
 display world =
     let (w',h') = (toFloat world.view.w, toFloat world.view.h)
+        center = container world.view.w world.view.h middle
         backdrop = collage world.view.w world.view.h <| [filled black <| rect w' h']
         items = displayPiece world ++ displayShadow world ++ displayBoard world
-        board = container world.view.w world.view.h middle <| collage (width*size) ((height+6)*size) items
-    in  layers <| [backdrop, board] ++ overlay world
+        board = border <| collage (width*size) ((height)*size) items
+        next = border <| collage (4*size) (height*size) <| displayNext world
+        hold = border <| collage (4*size) (4*size) []
+        score = flow right [spacer (4*size+12) 1, displayScore world]
+    in  layers <| [backdrop, center <| flow down [score, flow right <| [hold, spacer 8 1, board, spacer 8 1, next]]]
 
 -- Signals
 
