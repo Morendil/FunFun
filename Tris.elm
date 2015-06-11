@@ -41,11 +41,11 @@ size = 20
 tetrominoes = [
     {shape=[(-2,0),(-1,0),(0,0),(1,0)],color=1}, -- I
     {shape=[(-1,1),(-1,0),(0,0),(1,0)],color=2}, -- J
-    {shape=[(-1,0),(0,0),(1,0),(1,1)],color=3}, -- L
+    {shape=[(-1,0),(0,0),(1,0),(1,1)],color=3},  -- L
     {shape=[(-1,0),(-1,1),(0,0),(0,1)],color=4}, -- O
-    {shape=[(-1,0),(0,0),(0,1),(1,1)],color=5}, -- S
-    {shape=[(-1,0),(0,0),(0,1),(1,0)],color=6}, -- T
-    {shape=[(-1,1),(0,0),(0,1),(1,0)],color=7}] -- Z
+    {shape=[(-1,0),(0,0),(0,1),(1,1)],color=5},  -- S
+    {shape=[(-1,0),(0,0),(0,1),(1,0)],color=6},  -- T
+    {shape=[(-1,1),(0,0),(0,1),(1,0)],color=7}]  -- Z
 
 -- Update
 
@@ -163,7 +163,11 @@ displayPiece world =
     in map (displayTile piece world.piece.color) world.piece.shape
 
 displayNext world =
-    let piece = (6,20)
+    let world' = nextPiece world
+        shape = world'.piece.shape
+        extract part shape = -(withDefault 0 <| minimum <| map part <| shape)
+        offset = (extract fst world.piece.shape, extract snd world.piece.shape)
+        piece = addPair offset (4,19)
     in map (displayTile piece world.piece.color) world.piece.shape
 
 displayShadow world =
