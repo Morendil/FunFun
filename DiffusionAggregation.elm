@@ -40,7 +40,7 @@ moveMaker seed =
 type Update = Viewport (Int, Int) | Frame Float
 
 makeCells world =
-    let (cells', seed') = generate (Random.list 400 <| customGenerator cellMaker) world.seed
+    let (cells', seed') = generate (Random.list 600 <| customGenerator cellMaker) world.seed
     in {world | cells <- defaultCell :: cells', seed <- seed'}
 
 update u world =
@@ -54,19 +54,21 @@ updateViewport (w,h) world =
     in {world | view <- view'}
 
 offset move cell =
-    if cell.fixed then cell else {cell|x<-cell.x+toFloat (fst move),y<-cell.y+toFloat (snd move)}
+    {cell|x<-cell.x+toFloat (fst move),y<-cell.y+toFloat (snd move)}
 
 moveCells world =
     let count = length world.cells
         (moves,seed') = generate (Random.list count <| customGenerator moveMaker) world.seed
-        cells' = map2 offset moves world.cells
+        fixed = filter .fixed world.cells
+        cells' = fixed ++ map2 offset moves (filter (not << .fixed) world.cells)
     in {world | cells <- cells', seed <-seed'}
 
 freezeCells world =
     let dist me other = ((me.x-other.x)^2)+((me.y-other.y)^2)
         hit me other = let d = dist me other in (d < 4*radius*radius) && (d > 0) && other.fixed
         maybeFreeze others me = if any (\other -> hit me other) others then {me | fixed <- True} else me
-        cells' = map (maybeFreeze world.cells) world.cells
+        seeds = filter .fixed world.cells
+        cells' = map (maybeFreeze seeds) world.cells
     in {world | cells <- cells'}
 
 -- Display
