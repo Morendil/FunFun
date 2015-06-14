@@ -1,0 +1,86 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <style>
+      body {
+        margin: 0px;
+        padding: 0px;
+      }
+    </style>
+    <script type="text/javascript">
+        function resize_canvas(){
+            canvas = document.getElementById("myCanvas");
+            if (canvas.width  < window.innerWidth) {canvas.width  = window.innerWidth;}
+            if (canvas.height < window.innerHeight) {canvas.height = window.innerHeight;}
+        }
+    </script>
+  </head>
+  <body onresize="resize_canvas()">
+    <canvas id="myCanvas" width="100%" height="100%"></canvas>
+    <script>
+      resize_canvas();
+      var cells = [];
+      var count = 900;
+      var centerX = canvas.width / 2;
+      var centerY = canvas.height / 2;
+      var oldtime = 0;
+      for (i=0; i<count; i++) {
+        var cell = new Object();
+        cell.x = centerX+randomFrom(-centerX,centerX);
+        cell.y = centerY+randomFrom(-centerY,centerY);
+        cell.fixed = false;
+        cells.push(cell);
+      }
+      var cell = new Object();
+      cell.x = centerX; cell.y = centerY; cell.fixed = true;
+      cells.push(cell);
+      function randomFrom(min,max) {
+        return Math.floor(Math.random()*(max-min+1)+min);
+      }
+      function draw(time) {
+          var timenow = time;
+          var elapsed = timenow-oldtime;
+          var fps = 1000/elapsed;
+          oldtime = timenow;
+          requestAnimationFrame(draw);
+          var canvas = document.getElementById('myCanvas');
+          var context = canvas.getContext('2d');
+          var centerX = canvas.width / 2;
+          var centerY = canvas.height / 2;
+          var radius = 10;
+
+          context.clearRect(0, 0, canvas.width, canvas.height);
+          cells.map(function(cell) {
+            if (!cell.fixed) {
+              cell.x += randomFrom(-6,6);
+              cell.y += randomFrom(-6,6);              
+            }
+          });
+          cells.map(function(cell) {
+            if (!cell.fixed) {
+              if (cells.some(function(cell2) {
+                var dist = (cell.x-cell2.x)*(cell.x-cell2.x)+(cell.y-cell2.y)*(cell.y-cell2.y);
+                return cell2.fixed && (dist < 4*radius*radius) && (dist > 0)
+              })) {
+                cell.fixed = true;
+              }
+            }
+          });
+          cells.map(function(cell) {
+            context.beginPath();
+            context.arc(cell.x, cell.y, radius, 0, 2 * Math.PI, false);
+            context.fillStyle = cell.fixed ? 'red' : 'blue';
+            context.fill();
+            context.lineWidth = 1;
+            context.strokeStyle = '#003300';
+            context.stroke();            
+          });
+
+        context.fillStyle = "Black";
+        context.font      = "normal 16pt Arial";
+        context.fillText(fps + " fps", 10, 26);
+      }
+      draw();
+    </script>
+  </body>
+</html>
