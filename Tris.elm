@@ -49,7 +49,7 @@ tetrominoes = [
 
 -- Update
 
-type Update = Viewport (Int, Int) | Click (Int,Int) | Frame Float | Control {x:Int, y:Int}
+type Update = Viewport (Int, Int) | Click (Int,Int) | Frame Float | Control {x:Int, y:Int} | Drop Bool
 
 nextPiece world =
     let (piece', seed') = generate tetrominoGen world.seed
@@ -122,22 +122,23 @@ clean world =
         world' = {world | board <- board'}
     in if count == 0 then world' else score count world'
 
-drop world =
+drop hard world =
     let world' = apply fall {world | time <- 0}
         stopped = world.coords == world'.coords
     in if stopped then nextPiece <| clean <| freeze world'
-    else world'
+    else if hard then drop hard world' else world'
 
 update u world = 
     case u of
         Viewport vp -> updateViewport vp world
         Frame dt ->
             let world' = {world | time <- world.time + dt}
-            in if world'.time > world'.speed then drop world'
+            in if world'.time > world'.speed then drop False world'
             else world'
         Control keys ->
             if keys.y > 0 then rotatePiece world
             else apply (shift keys) world
+        Drop True -> drop True world
         _ -> world
 
 updateViewport (w,h) world =
@@ -210,11 +211,12 @@ display world =
 
 -- Signals
 
+drops = Signal.map Drop Keyboard.space
 controls = Signal.map Control Keyboard.arrows
 dimensions = Signal.map Viewport (Window.dimensions)
 frames = Signal.map Frame frame
 
-inputs = Signal.mergeMany [dimensions,frames,controls]
+inputs = Signal.mergeMany [dimensions,frames,controls,drops]
 
 main =
     let states = Signal.Extra.foldp' update start inputs
