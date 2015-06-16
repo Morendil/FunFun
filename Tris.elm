@@ -165,11 +165,11 @@ displayPiece world =
 
 displayNext world =
     let world' = nextPiece world
-        shape = world'.piece.shape
+        piece = world'.piece
         extract part shape = -(withDefault 0 <| minimum <| map part <| shape)
-        offset = (extract fst world.piece.shape, extract snd world.piece.shape)
-        piece = addPair offset (4,19)
-    in map (displayTile piece world.piece.color) world.piece.shape
+        offset = (toFloat <| extract fst piece.shape, toFloat <| extract snd piece.shape)
+        coords = addPair offset (4,19)
+    in map (displayTile coords piece.color) piece.shape
 
 displayShadow world =
     let tries = takeWhile (\n -> valid world.piece.shape world.board (fst world.coords,n)) <| reverse [1..snd world.coords-1]
