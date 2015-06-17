@@ -24,6 +24,8 @@ start u =
                 view={w=w,h=h},
                 board = Array.fromList (List.repeat (height*width) 0),
                 piece = [],
+                held = Nothing,
+                canHold = True,
                 coords = (width//2,height-1),
                 done = False,
                 speed = 500,
@@ -49,12 +51,12 @@ tetrominoes = [
 
 -- Update
 
-type Update = Viewport (Int, Int) | Click (Int,Int) | Frame Float | Control {x:Int, y:Int} | Drop Bool
+type Update = Viewport (Int, Int) | Click (Int,Int) | Frame Float | Control {x:Int, y:Int} | Drop Bool | Hold Bool
 
 nextPiece world =
     let (piece', seed') = generate tetrominoGen world.seed
         done' = not (valid piece'.shape world.board (width//2,height-1))
-    in if done' then {world | done <- True}
+    in if done' then {world | done <- True, piece <- {shape=[],color=0}}
         else {world | coords <- (width//2,height-1), piece <- piece', seed <- seed'}
 
 picker list seed =
@@ -119,7 +121,7 @@ clean world =
         count = height - (length cleaned)
         start = foldr Array.append Array.empty <| cleaned
         board' = Array.append start (Array.repeat (width * count) 0)
-        world' = {world | board <- board'}
+        world' = {world | board <- board', canHold <- True}
     in if count == 0 then world' else score count world'
 
 drop hard world =
@@ -127,6 +129,13 @@ drop hard world =
         stopped = world.coords == world'.coords
     in if stopped then nextPiece <| clean <| freeze world'
     else if hard then drop hard world' else world'
+
+hold world =
+    if world.canHold then case world.held of
+        Nothing -> let world' = nextPiece world
+                   in {world' | held <- (Just world.piece), canHold <- False}
+        (Just piece) -> {world | held <- Just world.piece, piece <- piece, canHold <- False}
+    else world
 
 update u world = 
     case u of
@@ -139,6 +148,7 @@ update u world =
             if keys.y > 0 then rotatePiece world
             else apply (shift keys) world
         Drop True -> drop True world
+        Hold True -> hold world
         _ -> world
 
 updateViewport (w,h) world =
@@ -179,6 +189,15 @@ displayShadow world =
         piece = (toFloat (fst world.coords), toFloat (withDefault 50 (head <| reverse tries)))
     in map (displayTile piece (world.piece.color+7)) world.piece.shape
 
+displayHeld world =
+    case world.held of
+        Nothing -> []
+        Just piece ->
+            let extract part shape = -(withDefault 0 <| minimum <| map part <| shape)
+                offset = (toFloat <| extract fst piece.shape, toFloat <| extract snd piece.shape)
+                coords = addPair offset (4,11)
+            in map (displayTile coords piece.color) piece.shape
+
 displayBoard world = 
     let board = world.board
         valueAt index = let (Just value) = Array.get index board in value
@@ -208,18 +227,19 @@ display world =
         items = displayPiece world ++ displayShadow world ++ displayBoard world
         board = border <| collage (width*size) ((height)*size) items
         next = border <| collage (4*size) (height*size) <| displayNext world
-        hold = border <| collage (4*size) (4*size) []
+        hold = border <| collage (4*size) (4*size) <| displayHeld world
         score = flow right [spacer (4*size+12) 1, displayScore world]
     in  layers <| [backdrop, center <| flow down [score, flow right <| [hold, spacer 8 1, board, spacer 8 1, next]]]
 
 -- Signals
 
+holds = Signal.map Hold (Keyboard.isDown 88)
 drops = Signal.map Drop Keyboard.space
 controls = Signal.map Control Keyboard.arrows
 dimensions = Signal.map Viewport (Window.dimensions)
 frames = Signal.map Frame frame
 
-inputs = Signal.mergeMany [dimensions,frames,controls,drops]
+inputs = Signal.mergeMany [dimensions,frames,controls,drops,holds]
 
 main =
     let states = Signal.Extra.foldp' update start inputs
