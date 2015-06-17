@@ -163,13 +163,16 @@ displayPiece world =
     let piece = (toFloat (fst world.coords), toFloat (snd world.coords))
     in map (displayTile piece world.piece.color) world.piece.shape
 
-displayNext world =
-    let world' = nextPiece world
+displayNthNext world n =
+    let world' = (iterate nextPiece n) world
         piece = world'.piece
         extract part shape = -(withDefault 0 <| minimum <| map part <| shape)
         offset = (toFloat <| extract fst piece.shape, toFloat <| extract snd piece.shape)
-        coords = addPair offset (4,19)
+        coords = addPair offset (4,19-3*(toFloat n-1))
     in map (displayTile coords piece.color) piece.shape
+
+displayNext world =
+    concatMap (displayNthNext world) [1..4]
 
 displayShadow world =
     let tries = takeWhile (\n -> valid world.piece.shape world.board (fst world.coords,n)) <| reverse [1..snd world.coords-1]
