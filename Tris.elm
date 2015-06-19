@@ -51,7 +51,7 @@ tetrominoes = [
 
 -- Update
 
-type Update = Viewport (Int, Int) | Click (Int,Int) | Frame Float | Control {x:Int, y:Int} | Drop Bool | Hold Bool
+type Update = Viewport (Int, Int) | Frame Float | Control {x:Int, y:Int} | Drop Bool | Hold Bool
 
 nextPiece world =
     let (piece', seed') = generate tetrominoGen world.seed
