@@ -19,29 +19,28 @@ start u =
     case u of
         Viewport (w,h) -> {
                 view={w=w,h=h},
-                pos={x=0,y=0}
+                pos={x=0,y=0},
+                aim=(0,0)
         }
 
 -- Update
 
-type Update = Viewport (Int, Int) | Frame Float (Int, Int)
+type Update = Viewport (Int, Int) | Frame Float | Point (Int, Int)
 
 update u world = 
     case u of
         Viewport vp -> updateViewport vp world
-        Frame dt cursor ->
+        Point coords -> {world | aim <- addPair (-world.view.w//2,-world.view.h//2) coords}
+        Frame dt ->
             let fps = Debug.watch "fps" <| floor (1000/dt)
-            in Debug.watch "world" <| glide world dt cursor
+            in glide world dt
 
-glide world dt cursor =
-    let delta which base =
-            let val = which <| addPair (-world.view.w//2,-world.view.h//2) cursor
-            in base +  if | val <= -5 && val > -50 -> -1
-                          | val >= 5 && val < 50 -> 1
-                          | val <= -50 -> -2
-                          | val >= 50 -> 2
-                          | otherwise -> 0
-        pos' = {x=delta fst world.pos.x,y=-(delta snd -world.pos.y)}
+glide world dt  =
+    let (x,y) = (toFloat <| fst world.aim, toFloat <| snd world.aim)
+        magnitude = sqrt (x^2+y^2)
+        direction = (if magnitude < 10 then 0 else x/magnitude,if magnitude < 10 then 0 else y/magnitude)
+        speed = (min 100 magnitude)/300
+        pos' = {x=world.pos.x+(fst direction)*speed*dt,y=world.pos.y-(snd direction)*speed*dt}
     in {world | pos <- pos'}
 
 updateViewport (w,h) world =
@@ -65,10 +64,11 @@ display world =
 
 -- Signals
 
-frames = Signal.map2 Frame frame Mouse.position
+frames = Signal.map Frame frame
+cursors = Signal.map Point Mouse.position
 dimensions = Signal.map Viewport (Window.dimensions)
 
-inputs = Signal.mergeMany [dimensions,frames]
+inputs = Signal.mergeMany [dimensions,frames,cursors]
 
 main =
     let states = Signal.Extra.foldp' update start inputs
