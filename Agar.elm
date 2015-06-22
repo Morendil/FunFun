@@ -27,6 +27,11 @@ start u =
 
 type Update = Viewport (Int, Int) | Frame Float | Point (Int, Int)
 
+minx = -5000
+maxx = 5000
+miny = -5000
+maxy = 5000
+
 update u world = 
     case u of
         Viewport vp -> updateViewport vp world
@@ -40,7 +45,8 @@ glide world dt  =
         magnitude = sqrt (x^2+y^2)
         direction = (if magnitude < 10 then 0 else x/magnitude,if magnitude < 10 then 0 else y/magnitude)
         speed = (min 100 magnitude)/300
-        pos' = {x=world.pos.x+(fst direction)*speed*dt,y=world.pos.y-(snd direction)*speed*dt}
+        (x',y') = (pin minx maxx (world.pos.x+(fst direction)*speed*dt),pin miny maxy (world.pos.y-(snd direction)*speed*dt))
+        pos' = {x=x',y=y'}
     in {world | pos <- pos'}
 
 updateViewport (w,h) world =

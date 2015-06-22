@@ -20,6 +20,9 @@ cartesian fn list1 list2 =
 between min max x =
   x >= min && x < max
 
+pin minimum maximum x =
+  max minimum (min maximum x)
+
 intersects (min1, max1) (min2, max2) =
   between min1 max1 min2 ||
   between min2 max2 min1
