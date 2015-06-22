@@ -20,7 +20,8 @@ start u =
         Viewport (w,h) -> {
                 view={w=w,h=h},
                 pos={x=0,y=0},
-                aim=(0,0)
+                aim=(0,0),
+                pellets=[{x=50,y=50,c=red}]
         }
 
 -- Update
@@ -56,17 +57,22 @@ updateViewport (w,h) world =
 
 -- Display
 
+displayPellet {x,y,c} =
+    move (x,y) <| filled c <| ngon 6 14
+
 display world =
     let spacing = 40
         radius = 20
         player = collage world.view.w world.view.h [filled black <| circle (radius+2), filled red <| circle radius]
+        pellets = displayOffset <| group <| map displayPellet world.pellets
         count = toFloat <| 2 * ((max world.view.w world.view.h) // (spacing*2))
         offset coord = -(toFloat (floor coord % spacing))
+        displayOffset form = collage world.view.w world.view.h [ move (-world.pos.x,-world.pos.y) form]
         lines = group <|
                     map (\k -> traced (dotted gray) <| segment (k*spacing,-1000) (k*spacing,1000)) [-count/2..1+count/2] ++
                     map (\k -> traced (dotted gray) <| segment (-1000,k*spacing) (1000,k*spacing)) [-count/2..1+count/2]
         grid = collage world.view.w world.view.h [ move (offset world.pos.x,offset world.pos.y) lines]
-    in layers [grid,player]
+    in layers [grid,pellets,player]
 
 -- Signals
 
