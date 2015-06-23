@@ -6,6 +6,7 @@ import Graphics.Collage exposing (..)
 import Generic exposing (..)
 import List exposing (..)
 import Color exposing (..)
+import Random exposing (..)
 
 import Debug
 import Window
@@ -17,11 +18,12 @@ import Signal.Extra
 
 start u =
     case u of
-        Viewport (w,h) -> {
+        Viewport (w,h) -> makePellets 1000 {
                 view={w=w,h=h},
                 pos={x=0,y=0},
                 aim=(0,0),
-                pellets=[{x=50,y=50,c=red}]
+                pellets=[{x=50,y=50,c=red}],
+                seed=initialSeed 0
         }
 
 -- Update
@@ -32,6 +34,18 @@ minx = -5000
 maxx = 5000
 miny = -5000
 maxy = 5000
+
+makePellets n world =
+    let (pellets',seed') = generate (Random.list n <| customGenerator pelletMaker) world.seed
+    in {world | seed <- seed', pellets <- pellets'}
+
+pelletMaker seed =
+    coordMaker minx maxx miny maxy seed
+
+coordMaker minx maxx miny maxy seed =
+    let (x,seed') = generate (float minx maxx) seed
+        (y,seed'') = generate (float miny maxy) seed'
+    in ({x=x,y=y,c=red},seed'')
 
 update u world = 
     case u of
