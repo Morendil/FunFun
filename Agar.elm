@@ -53,7 +53,7 @@ update u world =
         Point coords -> {world | aim <- addPair (-world.view.w//2,-world.view.h//2) coords}
         Frame dt ->
             let fps = Debug.watch "fps" <| floor (1000/dt)
-            in glide world dt
+            in eat <| glide world dt
 
 glide world dt  =
     let (x,y) = (toFloat <| fst world.aim, toFloat <| snd world.aim)
@@ -64,6 +64,12 @@ glide world dt  =
         pos' = {x=x',y=y'}
     in {world | pos <- pos'}
 
+eat world =
+    let distance (x1,y1) (x2,y2) = sqrt ((x1-x2)^2+(y1-y2)^2)
+        notEaten pellet = distance (pellet.x,pellet.y) (world.pos.x,world.pos.y) > radius
+        pellets' = filter notEaten world.pellets
+    in {world | pellets <- pellets'}
+
 updateViewport (w,h) world =
     let view = world.view
         view' = {view | w<-w,h<-h}
@@ -71,12 +77,14 @@ updateViewport (w,h) world =
 
 -- Display
 
+radius = 20
+pradius = 14
+
 displayPellet {x,y,c} =
-    move (x,y) <| filled c <| ngon 6 14
+    move (x,y) <| filled c <| ngon 6 pradius
 
 display world =
-    let spacing = 40
-        radius = 20
+    let spacing = 40        
         player = collage world.view.w world.view.h [filled black <| circle (radius+2), filled red <| circle radius]
         pellets = displayOffset <| group <| map displayPellet world.pellets
         count = toFloat <| 2 * ((max world.view.w world.view.h) // (spacing*2))
