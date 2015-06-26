@@ -23,6 +23,7 @@ start u =
                 pos={x=0,y=0},
                 aim=(0,0),
                 pellets=[{x=50,y=50,c=red}],
+                mass=2000,
                 seed=initialSeed 0
         }
 
@@ -66,9 +67,10 @@ glide world dt  =
 
 eat world =
     let distance (x1,y1) (x2,y2) = sqrt ((x1-x2)^2+(y1-y2)^2)
-        notEaten pellet = distance (pellet.x,pellet.y) (world.pos.x,world.pos.y) > radius
+        notEaten pellet = distance (pellet.x,pellet.y) (world.pos.x,world.pos.y) > (radius world)
         pellets' = filter notEaten world.pellets
-    in {world | pellets <- pellets'}
+        mass' = world.mass + if length pellets' == length world.pellets then 0 else (pradius*20)
+    in {world | pellets <- pellets', mass <- mass'}
 
 updateViewport (w,h) world =
     let view = world.view
@@ -77,7 +79,7 @@ updateViewport (w,h) world =
 
 -- Display
 
-radius = 20
+radius world = (sqrt world.mass) / 3.14
 pradius = 14
 
 displayPellet {x,y,c} =
@@ -85,7 +87,7 @@ displayPellet {x,y,c} =
 
 display world =
     let spacing = 40        
-        player = collage world.view.w world.view.h [filled black <| circle (radius+2), filled red <| circle radius]
+        player = collage world.view.w world.view.h [filled black <| circle ((radius world)+2), filled red <| circle (radius world)]
         pellets = displayOffset <| group <| map displayPellet world.pellets
         count = toFloat <| 2 * ((max world.view.w world.view.h) // (spacing*2))
         offset coord = -(toFloat (floor coord % spacing))
