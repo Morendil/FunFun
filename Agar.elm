@@ -23,14 +23,15 @@ start u =
                 view={w=w,h=h},
                 pos={x=0,y=0},
                 aim=(0,0),
-                pellets=[{x=50,y=50,c=red}],
+                pellets=[],
+                others=[],
                 mass=1000,
                 seed=initialSeed 0
         }
 
 -- Update
 
-type Update = Viewport (Int, Int) | Frame Float | Point (Int, Int)
+type Update = Viewport (Int, Int) | Frame Float | Point (Int, Int) | Eject Bool
 
 minx = -5000
 maxx = 5000
@@ -53,6 +54,7 @@ update u world =
     case u of
         Viewport vp -> updateViewport vp world
         Point coords -> {world | aim <- addPair (-world.view.w//2,-world.view.h//2) coords}
+        Eject _ -> {world | others <- [{x=50,y=50,mass=1000}]}
         Frame dt ->
             let fps = Debug.watch "fps" <| floor (1000/dt)
             in eat <| glide world dt
@@ -68,7 +70,7 @@ glide world dt  =
 
 eat world =
     let distance (x1,y1) (x2,y2) = sqrt ((x1-x2)^2+(y1-y2)^2)
-        notEaten pellet = distance (pellet.x,pellet.y) (world.pos.x,world.pos.y) > (radius world)
+        notEaten pellet = distance (pellet.x,pellet.y) (world.pos.x,world.pos.y) > (radius world.mass)
         pellets' = filter notEaten world.pellets
         mass' = world.mass + if length pellets' == length world.pellets then 0 else 100
     in {world | pellets <- pellets', mass <- mass'}
@@ -80,18 +82,24 @@ updateViewport (w,h) world =
 
 -- Display
 
-radius world = sqrt (world.mass / 3.14)
+radius mass = sqrt (mass / 3.14)
 pradius = 14
 
 displayPellet {x,y,c} =
     move (x,y) <| filled c <| ngon 6 pradius
 
+displayOther {x,y,mass} =
+    move (x,y) <| displayMass mass
+
+displayMass mass =
+    group [filled black <| circle ((radius mass)+2), filled red <| circle (radius mass),
+                     text <| fromString <| toString <| mass/100]
+
 display world =
     let spacing = 40        
-        player = collage world.view.w world.view.h
-                    [filled black <| circle ((radius world)+2), filled red <| circle (radius world),
-                     text <| fromString <| toString <| world.mass/100]
+        player = collage world.view.w world.view.h [displayMass world.mass]
         pellets = displayOffset <| group <| map displayPellet world.pellets
+        others = displayOffset <| group <| map displayOther world.others
         count = toFloat <| 2 * ((max world.view.w world.view.h) // (spacing*2))
         offset coord = -(toFloat (floor coord % spacing))
         displayOffset form = collage world.view.w world.view.h [ move (-world.pos.x,-world.pos.y) form]
@@ -99,15 +107,16 @@ display world =
                     map (\k -> traced (dotted gray) <| segment (k*spacing,-1000) (k*spacing,1000)) [-count/2..1+count/2] ++
                     map (\k -> traced (dotted gray) <| segment (-1000,k*spacing) (1000,k*spacing)) [-count/2..1+count/2]
         grid = collage world.view.w world.view.h [ move (offset world.pos.x,offset world.pos.y) lines]
-    in layers [grid,pellets,player]
+    in layers [grid,pellets,player,others]
 
 -- Signals
 
+eject = Signal.map Eject (Keyboard.isDown 87)
 frames = Signal.map Frame frame
 cursors = Signal.map Point Mouse.position
 dimensions = Signal.map Viewport (Window.dimensions)
 
-inputs = Signal.mergeMany [dimensions,frames,cursors]
+inputs = Signal.mergeMany [dimensions,frames,cursors,eject]
 
 main =
     let states = Signal.Extra.foldp' update start inputs
