@@ -54,10 +54,17 @@ update u world =
     case u of
         Viewport vp -> updateViewport vp world
         Point coords -> {world | aim <- addPair (-world.view.w//2,-world.view.h//2) coords}
-        Eject _ -> {world | others <- [{x=50,y=50,mass=1000}]}
+        Eject _ -> {world | others <- [{x=world.pos.x,y=world.pos.y,dx=1,dy=1,mass=1000}]}
         Frame dt ->
             let fps = Debug.watch "fps" <| floor (1000/dt)
-            in eat <| glide world dt
+            in eat <| slide (glide world dt) dt
+
+slideOther world dt {x,y,dx,dy,mass} = 
+    {x=x+dx*dt,y=y+dy*dt,dx=max 0 (dx-0.005*dt),dy=max 0 (dy-0.005*dt),mass=mass}
+
+slide world dt =
+    let others' = map (slideOther world dt) world.others
+    in {world | others <- others'}
 
 glide world dt  =
     let (x,y) = (toFloat <| fst world.aim, toFloat <| snd world.aim)
