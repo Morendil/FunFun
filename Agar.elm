@@ -54,10 +54,18 @@ update u world =
     case u of
         Viewport vp -> updateViewport vp world
         Point coords -> {world | aim <- addPair (-world.view.w//2,-world.view.h//2) coords}
-        Eject _ -> {world | others <- [{x=world.pos.x,y=world.pos.y,dx=1,dy=1,mass=1000}]}
+        Eject _ -> spawn world
         Frame dt ->
             let fps = Debug.watch "fps" <| floor (1000/dt)
             in eat <| slide (glide world dt) dt
+
+spawn world =
+    if world.mass < 3500 then world else
+        let (x,y) = (toFloat <| fst world.aim, toFloat <| snd world.aim)
+            magnitude = sqrt (x^2+y^2)
+            (dx,dy) = (if magnitude < 10 then 1 else x/magnitude,if magnitude < 10 then 1 else y/magnitude)
+            others' = {x=world.pos.x,y=world.pos.y,dx=dx*3,dy=-dy*3,mass=1200} :: world.others
+        in {world | others <- others', mass <- world.mass - 1800}
 
 slideOther world dt {x,y,dx,dy,mass} = 
     {x=x+dx*dt,y=y+dy*dt,dx=max 0 (dx-0.005*dt),dy=max 0 (dy-0.005*dt),mass=mass}
