@@ -87,8 +87,8 @@ eat world =
     let distance (x1,y1) (x2,y2) = sqrt ((x1-x2)^2+(y1-y2)^2)
         inRange pellet = distance (pellet.x,pellet.y) (world.pos.x,world.pos.y) < (radius world.mass)
         eatable pellet = (pellet.mass * 1.25) < world.mass
-        (eatenPellets,pellets') = partition (\x -> inRange x && eatable x) world.pellets
-        (eatenOthers,others') = partition (\x -> inRange x && eatable x) world.others
+        (eatenPellets,pellets') = partition (inRange `and` eatable) world.pellets
+        (eatenOthers,others') = partition (inRange `and` eatable) world.others
         mass' = world.mass + sum (map .mass eatenPellets) + sum (map .mass eatenOthers)
     in {world | pellets <- pellets', others <- others', mass <- mass'}
 

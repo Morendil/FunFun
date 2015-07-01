@@ -4,6 +4,10 @@ import List exposing (foldr,repeat,map,map2,append,concatMap)
 
 -- GENERIC
 
+and : (a -> Bool) -> (a -> Bool) -> a -> Bool
+and f g x =
+  f x && g x
+
 takeWhile : (a -> Bool) -> List a -> List a
 takeWhile predicate list =
   case list of
