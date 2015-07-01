@@ -48,7 +48,7 @@ pelletMaker seed =
 coordMaker minx maxx miny maxy seed =
     let (x,seed') = generate (float minx maxx) seed
         (y,seed'') = generate (float miny maxy) seed'
-    in ({x=x,y=y,c=red},seed'')
+    in ({x=x,y=y,c=red,mass=100},seed'')
 
 update u world = 
     case u of
@@ -85,10 +85,12 @@ glide world dt  =
 
 eat world =
     let distance (x1,y1) (x2,y2) = sqrt ((x1-x2)^2+(y1-y2)^2)
-        notEaten pellet = distance (pellet.x,pellet.y) (world.pos.x,world.pos.y) > (radius world.mass)
-        pellets' = filter notEaten world.pellets
-        mass' = world.mass + if length pellets' == length world.pellets then 0 else 100
-    in {world | pellets <- pellets', mass <- mass'}
+        inRange pellet = distance (pellet.x,pellet.y) (world.pos.x,world.pos.y) < (radius world.mass)
+        eatable pellet = (pellet.mass * 1.25) < world.mass
+        (eatenPellets,pellets') = partition (\x -> inRange x && eatable x) world.pellets
+        (eatenOthers,others') = partition (\x -> inRange x && eatable x) world.others
+        mass' = world.mass + sum (map .mass eatenPellets) + sum (map .mass eatenOthers)
+    in {world | pellets <- pellets', others <- others', mass <- mass'}
 
 updateViewport (w,h) world =
     let view = world.view
@@ -122,7 +124,7 @@ display world =
                     map (\k -> traced (dotted gray) <| segment (k*spacing,-1000) (k*spacing,1000)) [-count/2..1+count/2] ++
                     map (\k -> traced (dotted gray) <| segment (-1000,k*spacing) (1000,k*spacing)) [-count/2..1+count/2]
         grid = collage world.view.w world.view.h [ move (offset world.pos.x,offset world.pos.y) lines]
-    in layers [grid,pellets,player,others]
+    in layers [grid,pellets,others,player]
 
 -- Signals
 
