@@ -19,14 +19,15 @@ import Signal.Extra
 
 start u =
     case u of
-        Viewport (w,h) -> makePellets 1000 {
-                view={w=w,h=h},
+        Viewport (w,h) -> makePellets 1000 <| updateViewport (w,h) {
+                view={w=0,h=0},
                 pos={x=0,y=0},
                 aim=(0,0),
                 pellets=[],
                 others=[],
                 mass=1000,
-                seed=initialSeed 0
+                seed=initialSeed 0,
+                grid = toForm Graphics.Element.empty
         }
 
 -- Update
@@ -95,12 +96,14 @@ eat world =
 updateViewport (w,h) world =
     let view = world.view
         view' = {view | w<-w,h<-h}
-    in {world | view <- view'}
+        world' = {world | view <- view'}
+    in {world' | grid <- initGrid world'}
 
 -- Display
 
 radius mass = sqrt (mass / 3.14)
 pradius = 14
+spacing = 40
 
 displayPellet {x,y,c} =
     move (x,y) <| filled c <| ngon 6 pradius
@@ -112,18 +115,20 @@ displayMass mass =
     group [filled black <| circle ((radius mass)+2), filled red <| circle (radius mass),
                      text <| fromString <| toString <| mass/100]
 
-display world =
-    let spacing = 40        
-        player = collage world.view.w world.view.h [displayMass world.mass]
-        pellets = displayOffset <| group <| map displayPellet world.pellets
-        others = displayOffset <| group <| map displayOther world.others
-        count = toFloat <| 2 * ((max world.view.w world.view.h) // (spacing*2))
-        offset coord = -(toFloat (floor coord % spacing))
-        displayOffset form = collage world.view.w world.view.h [ move (-world.pos.x,-world.pos.y) form]
+initGrid world =
+    let count = toFloat <| 2 * ((max world.view.w world.view.h) // (spacing*2))
         lines = group <|
                     map (\k -> traced (dotted gray) <| segment (k*spacing,-1000) (k*spacing,1000)) [-count/2..1+count/2] ++
                     map (\k -> traced (dotted gray) <| segment (-1000,k*spacing) (1000,k*spacing)) [-count/2..1+count/2]
-        grid = collage world.view.w world.view.h [ move (offset world.pos.x,offset world.pos.y) lines]
+    in lines
+
+display world =
+    let player = collage world.view.w world.view.h [displayMass world.mass]
+        pellets = displayOffset <| group <| map displayPellet world.pellets
+        others = displayOffset <| group <| map displayOther world.others
+        displayOffset form = collage world.view.w world.view.h [ move (-world.pos.x,-world.pos.y) form]
+        offset coord = -(toFloat (floor coord % spacing))
+        grid = collage world.view.w world.view.h [ move (offset world.pos.x,offset world.pos.y) world.grid]
     in layers [grid,pellets,others,player]
 
 -- Signals
