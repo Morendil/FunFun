@@ -24,7 +24,7 @@ start u =
                 pos={x=0,y=0},
                 aim=(0,0),
                 pellets=[],
-                others=[],
+                nuggets=[],
                 mass=1000,
                 seed=initialSeed 0,
                 grid = toForm Graphics.Element.empty
@@ -65,15 +65,15 @@ spawn world =
         let (x,y) = (toFloat <| fst world.aim, toFloat <| snd world.aim)
             magnitude = sqrt (x^2+y^2)
             (dx,dy) = (if magnitude < 10 then 1 else x/magnitude,if magnitude < 10 then 1 else y/magnitude)
-            others' = {x=world.pos.x,y=world.pos.y,dx=dx*3,dy=-dy*3,mass=1200} :: world.others
-        in {world | others <- others', mass <- world.mass - 1800}
+            nuggets' = {x=world.pos.x,y=world.pos.y,dx=dx*3,dy=-dy*3,mass=1200} :: world.nuggets
+        in {world | nuggets <- nuggets', mass <- world.mass - 1800}
 
 slideOther world dt {x,y,dx,dy,mass} = 
     {x=x+dx*dt,y=y+dy*dt,dx=max 0 (dx-0.005*dt),dy=max 0 (dy-0.005*dt),mass=mass}
 
 slide world dt =
-    let others' = map (slideOther world dt) world.others
-    in {world | others <- others'}
+    let nuggets' = map (slideOther world dt) world.nuggets
+    in {world | nuggets <- nuggets'}
 
 glide world dt  =
     let (x,y) = (toFloat <| fst world.aim, toFloat <| snd world.aim)
@@ -89,9 +89,9 @@ eat world =
         inRange pellet = distance (pellet.x,pellet.y) (world.pos.x,world.pos.y) < (radius world.mass)
         eatable pellet = (pellet.mass * 1.25) < world.mass
         (eatenPellets,pellets') = partition (inRange `and` eatable) world.pellets
-        (eatenOthers,others') = partition (inRange `and` eatable) world.others
-        mass' = world.mass + sum (map .mass eatenPellets) + sum (map .mass eatenOthers)
-    in {world | pellets <- pellets', others <- others', mass <- mass'}
+        (eatenNuggets,nuggets') = partition (inRange `and` eatable) world.nuggets
+        mass' = world.mass + sum (map .mass eatenPellets) + sum (map .mass eatenNuggets)
+    in {world | pellets <- pellets', nuggets <- nuggets', mass <- mass'}
 
 updateViewport (w,h) world =
     let view = world.view
@@ -125,11 +125,11 @@ initGrid world =
 display world =
     let player = collage world.view.w world.view.h [displayMass world.mass]
         pellets = displayOffset <| group <| map displayPellet world.pellets
-        others = displayOffset <| group <| map displayOther world.others
+        nuggets = displayOffset <| group <| map displayOther world.nuggets
         displayOffset form = collage world.view.w world.view.h [ move (-world.pos.x,-world.pos.y) form]
         offset coord = -(toFloat (floor coord % spacing))
         grid = collage world.view.w world.view.h [ move (offset world.pos.x,offset world.pos.y) world.grid]
-    in layers [grid,pellets,others,player]
+    in layers [grid,pellets,nuggets,player]
 
 -- Signals
 
