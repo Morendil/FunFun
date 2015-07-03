@@ -79,7 +79,7 @@ glide world dt  =
     let (x,y) = (toFloat <| fst world.aim, toFloat <| snd world.aim)
         magnitude = sqrt (x^2+y^2)
         direction = (if magnitude < 10 then 0 else x/magnitude,if magnitude < 10 then 0 else y/magnitude)
-        speed = (min 100 magnitude)/300
+        speed = (min 100 magnitude)/(6*(sqrt world.mass))
         (x',y') = (pin minx maxx (world.pos.x+(fst direction)*speed*dt),pin miny maxy (world.pos.y-(snd direction)*speed*dt))
         pos' = {x=x',y=y'}
     in {world | pos <- pos'}
