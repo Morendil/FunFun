@@ -32,7 +32,7 @@ start u =
 
 -- Update
 
-type Update = Viewport (Int, Int) | Frame Float | Point (Int, Int) | Eject Bool
+type Update = Viewport (Int, Int) | Frame Float | Point (Int, Int) | Eject Bool | Split Bool
 
 minx = -5000
 maxx = 5000
@@ -133,6 +133,7 @@ display world =
 
 -- Signals
 
+split = Signal.map Split Keyboard.space
 eject = Signal.map Eject (Keyboard.isDown 87)
 frames = Signal.map Frame frame
 cursors = Signal.map Point Mouse.position
