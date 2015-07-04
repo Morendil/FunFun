@@ -95,7 +95,9 @@ eat world =
         (eatenPellets,pellets') = partition (inRange `and` eatable) world.pellets
         (eatenNuggets,nuggets') = partition (inRange `and` eatable) world.nuggets
         mass' = world.player.mass + sum (map .mass eatenPellets) + sum (map .mass eatenNuggets)
-    in {world | pellets <- pellets', nuggets <- nuggets', mass <- mass'}
+        player = world.player
+        player' = {player | mass <- mass'}
+    in {world | pellets <- pellets', nuggets <- nuggets', player <- player'}
 
 updateViewport (w,h) world =
     let view = world.view
