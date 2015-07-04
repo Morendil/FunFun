@@ -59,15 +59,17 @@ update u world =
             let fps = Debug.watch "fps" <| floor (1000/dt)
             in eat <| slide (glide world dt) dt
 
+spawnOne (x,y) player =
+    if player.mass < 3500 then ([],player) else
+    let magnitude = sqrt (x^2+y^2)
+        (dx,dy) = (if magnitude < 10 then 1 else x/magnitude,if magnitude < 10 then 1 else y/magnitude)
+        nuggets' = [{x=player.x,y=player.y,dx=dx*3,dy=-dy*3,mass=1200}]
+        player' = {player | mass <- player.mass - 1800}
+    in (nuggets',player')
+
 spawn world =
-    let player = world.player
-    in if player.mass < 3500 then world else
-            let (x,y) = (toFloat <| fst world.aim, toFloat <| snd world.aim)
-                magnitude = sqrt (x^2+y^2)
-                (dx,dy) = (if magnitude < 10 then 1 else x/magnitude,if magnitude < 10 then 1 else y/magnitude)
-                nuggets' = {x=world.player.x,y=world.player.y,dx=dx*3,dy=-dy*3,mass=1200} :: world.nuggets
-                player' = {player | mass <- player.mass - 1800}
-        in {world | nuggets <- nuggets', player <- player'}
+    let (nuggets',player') = spawnOne (toFloat <| fst world.aim, toFloat <| snd world.aim) world.player
+    in {world | nuggets <- nuggets' ++ world.nuggets, player <- player'}
 
 slideOther world dt {x,y,dx,dy,mass} = 
     {x=x+dx*dt,y=y+dy*dt,dx=max 0 (dx-0.005*dt),dy=max 0 (dy-0.005*dt),mass=mass}
