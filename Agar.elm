@@ -21,11 +21,10 @@ start u =
     case u of
         Viewport (w,h) -> makePellets 1000 <| updateViewport (w,h) {
                 view={w=0,h=0},
-                pos={x=0,y=0},
+                player={x=0,y=0,mass=1000},
                 aim=(0,0),
                 pellets=[],
                 nuggets=[],
-                mass=1000,
                 seed=initialSeed 0,
                 grid = toForm Graphics.Element.empty
         }
@@ -61,12 +60,14 @@ update u world =
             in eat <| slide (glide world dt) dt
 
 spawn world =
-    if world.mass < 3500 then world else
-        let (x,y) = (toFloat <| fst world.aim, toFloat <| snd world.aim)
-            magnitude = sqrt (x^2+y^2)
-            (dx,dy) = (if magnitude < 10 then 1 else x/magnitude,if magnitude < 10 then 1 else y/magnitude)
-            nuggets' = {x=world.pos.x,y=world.pos.y,dx=dx*3,dy=-dy*3,mass=1200} :: world.nuggets
-        in {world | nuggets <- nuggets', mass <- world.mass - 1800}
+    let player = world.player
+    in if player.mass < 3500 then world else
+            let (x,y) = (toFloat <| fst world.aim, toFloat <| snd world.aim)
+                magnitude = sqrt (x^2+y^2)
+                (dx,dy) = (if magnitude < 10 then 1 else x/magnitude,if magnitude < 10 then 1 else y/magnitude)
+                nuggets' = {x=world.player.x,y=world.player.y,dx=dx*3,dy=-dy*3,mass=1200} :: world.nuggets
+                player' = {player | mass <- player.mass - 1800}
+        in {world | nuggets <- nuggets', player <- player'}
 
 slideOther world dt {x,y,dx,dy,mass} = 
     {x=x+dx*dt,y=y+dy*dt,dx=max 0 (dx-0.005*dt),dy=max 0 (dy-0.005*dt),mass=mass}
@@ -79,18 +80,19 @@ glide world dt  =
     let (x,y) = (toFloat <| fst world.aim, toFloat <| snd world.aim)
         magnitude = sqrt (x^2+y^2)
         direction = (if magnitude < 10 then 0 else x/magnitude,if magnitude < 10 then 0 else y/magnitude)
-        speed = (min 100 magnitude)/(6*(sqrt world.mass))
-        (x',y') = (pin minx maxx (world.pos.x+(fst direction)*speed*dt),pin miny maxy (world.pos.y-(snd direction)*speed*dt))
-        pos' = {x=x',y=y'}
-    in {world | pos <- pos'}
+        speed = (min 100 magnitude)/(6*(sqrt world.player.mass))
+        (x',y') = (pin minx maxx (world.player.x+(fst direction)*speed*dt),pin miny maxy (world.player.y-(snd direction)*speed*dt))
+        player = world.player
+        player' = {player | x<-x',y<-y'}
+    in {world | player <- player'}
 
 eat world =
     let distance (x1,y1) (x2,y2) = sqrt ((x1-x2)^2+(y1-y2)^2)
-        inRange pellet = distance (pellet.x,pellet.y) (world.pos.x,world.pos.y) < (radius world.mass)
-        eatable pellet = (pellet.mass * 1.25) < world.mass
+        inRange pellet = distance (pellet.x,pellet.y) (world.player.x,world.player.y) < (radius world.player.mass)
+        eatable pellet = (pellet.mass * 1.25) < world.player.mass
         (eatenPellets,pellets') = partition (inRange `and` eatable) world.pellets
         (eatenNuggets,nuggets') = partition (inRange `and` eatable) world.nuggets
-        mass' = world.mass + sum (map .mass eatenPellets) + sum (map .mass eatenNuggets)
+        mass' = world.player.mass + sum (map .mass eatenPellets) + sum (map .mass eatenNuggets)
     in {world | pellets <- pellets', nuggets <- nuggets', mass <- mass'}
 
 updateViewport (w,h) world =
@@ -123,12 +125,12 @@ initGrid world =
     in lines
 
 display world =
-    let player = collage world.view.w world.view.h [displayMass world.mass]
+    let player = collage world.view.w world.view.h [displayMass world.player.mass]
         pellets = displayOffset <| group <| map displayPellet world.pellets
         nuggets = displayOffset <| group <| map displayOther world.nuggets
-        displayOffset form = collage world.view.w world.view.h [ move (-world.pos.x,-world.pos.y) form]
+        displayOffset form = collage world.view.w world.view.h [ move (-world.player.x,-world.player.y) form]
         offset coord = -(toFloat (floor coord % spacing))
-        grid = collage world.view.w world.view.h [ move (offset world.pos.x,offset world.pos.y) world.grid]
+        grid = collage world.view.w world.view.h [ move (offset world.player.x,offset world.player.y) world.grid]
     in layers [grid,pellets,nuggets,player]
 
 -- Signals
