@@ -72,8 +72,10 @@ spawn world =
         (nuggets',player') = spawnOne (toFloat <| fst world.aim, toFloat <| snd world.aim) player
     in {world | nuggets <- nuggets' ++ world.nuggets, players <- [player']}
 
-slideOther world dt {x,y,dx,dy,mass} = 
-    {x=x+dx*dt,y=y+dy*dt,dx=max 0 (dx-0.005*dt),dy=max 0 (dy-0.005*dt),mass=mass}
+slideOther world dt {x,y,dx,dy,mass} =
+    let magnitude = sqrt (dx^2+dy^2)
+        (sdx,sdy) = if magnitude <= 0.001 then (0,0) else (0.95*dx/magnitude,0.95*dy/magnitude)
+    in {x=x+dx*dt,y=y+dy*dt,dx=sdx,dy=sdy,mass=mass}
 
 slide world dt =
     let nuggets' = map (slideOther world dt) world.nuggets
