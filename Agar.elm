@@ -21,7 +21,7 @@ start u =
     case u of
         Viewport (w,h) -> makePellets 1000 <| updateViewport (w,h) {
                 view={w=0,h=0},
-                players=[{x=0,y=0,mass=1000}],
+                players=[{x=0,y=0,dx=0,dy=0,mass=1000}],
                 aim=(0,0),
                 pellets=[],
                 nuggets=[],
@@ -54,23 +54,42 @@ update u world =
     case u of
         Viewport vp -> updateViewport vp world
         Point coords -> {world | aim <- addPair (-world.view.w//2,-world.view.h//2) coords}
-        Eject _ -> spawn world
+        Eject True -> spawn world
+        Split True -> splitCell world
         Frame dt ->
             let fps = Debug.watch "fps" <| floor (1000/dt)
             in eat <| slide (glide world dt) dt
+        _ -> world
 
-spawnOne (x,y) player =
-    if player.mass < 3500 then ([],player) else
-    let magnitude = sqrt (x^2+y^2)
+splitOne world cell =
+    if cell.mass < 3500 then [cell] else
+        let {x,y,dx,dy,mass} = cell
+            (ax,ay) = (toFloat <| fst world.aim, toFloat <| snd world.aim)
+            magnitude = sqrt ((ax-x)^2+(ay-y)^2)
+            direction = (if magnitude < 10 then 1 else (ax-x)/magnitude,if magnitude < 10 then 1 else (ay-y)/magnitude)
+            (sdx,sdy) = (fst direction * 2 * radius (halve mass), snd direction * 2 * radius (halve mass))
+            halve mass = 100 * (toFloat <| floor (mass/100)//2)
+        in [{x=x,y=y,dx=0,dy=0,mass=halve mass},{x=x+sdx,y=y+sdy,dx=0,dy=0,mass=halve mass}]
+
+splitCell world =
+    {world | players <- concatMap (splitOne world) world.players}
+
+spawnOne world player =
+    if player.mass < 3500 then (world,player) else
+    let (x,y) = (toFloat <| fst world.aim, toFloat <| snd world.aim)
+        magnitude = sqrt (x^2+y^2)
         (dx,dy) = (if magnitude < 10 then 1 else x/magnitude,if magnitude < 10 then 1 else y/magnitude)
         nuggets' = [{x=player.x,y=player.y,dx=dx*3,dy=-dy*3,mass=1200}]
         player' = {player | mass <- player.mass - 1800}
-    in (nuggets',player')
+        world' = {world | nuggets <- nuggets' ++ world.nuggets}
+    in (world', player')
 
 spawn world =
-    let (Just player) = head world.players
-        (nuggets',player') = spawnOne (toFloat <| fst world.aim, toFloat <| snd world.aim) player
-    in {world | nuggets <- nuggets' ++ world.nuggets, players <- [player']}
+    let reduce player (world,players) = 
+        let (world',player') = spawnOne world player
+        in (world',player' :: players)
+        (world',players') = foldr reduce (world,[]) world.players
+    in {world' | players <- players'}
 
 slideOther world dt cell =
     let {x,y,dx,dy,mass} = cell
@@ -80,26 +99,34 @@ slide world dt =
     let nuggets' = map (slideOther world dt) world.nuggets
     in {world | nuggets <- nuggets'}
 
-glide world dt  =
+glideOne world dt player =
     let (x,y) = (toFloat <| fst world.aim, toFloat <| snd world.aim)
         magnitude = sqrt (x^2+y^2)
         direction = (if magnitude < 10 then 0 else x/magnitude,if magnitude < 10 then 0 else y/magnitude)
         speed = (min 100 magnitude)/(6*(sqrt player.mass))
         (x',y') = (pin minx maxx (player.x+(fst direction)*speed*dt),pin miny maxy (player.y-(snd direction)*speed*dt))
-        (Just player) = head world.players
-        player' = {player | x<-x',y<-y'}
-    in {world | players <- [player']}
+    in {player | x<-x',y<-y'}
 
-eat world =
+glide world dt =
+    {world | players <- map (glideOne world dt) world.players}
+
+eatOne world player = 
     let distance (x1,y1) (x2,y2) = sqrt ((x1-x2)^2+(y1-y2)^2)
         inRange pellet = distance (pellet.x,pellet.y) (player.x,player.y) < (radius player.mass)
         eatable pellet = (pellet.mass * 1.25) < player.mass
         (eatenPellets,pellets') = partition (inRange `and` eatable) world.pellets
         (eatenNuggets,nuggets') = partition (inRange `and` eatable) world.nuggets
         mass' = player.mass + sum (map .mass eatenPellets) + sum (map .mass eatenNuggets)
-        (Just player) = head world.players
+        world' = {world | pellets <- pellets', nuggets <- nuggets'}
         player' = {player | mass <- mass'}
-    in {world | pellets <- pellets', nuggets <- nuggets', players <- [player']}
+    in (world', player')
+
+eat world =
+    let reduce player (world,players) = 
+        let (world',player') = eatOne world player
+        in (world',player' :: players)
+        (world',players') = foldr reduce (world,[]) world.players
+    in {world' | players <- players'}
 
 updateViewport (w,h) world =
     let view = world.view
@@ -116,12 +143,13 @@ spacing = 40
 displayPellet {x,y,c} =
     move (x,y) <| filled c <| ngon 6 pradius
 
-displayOther {x,y,mass} =
-    move (x,y) <| displayMass mass
+displayOther cell =
+    let {x,y,mass} = cell
+    in move (x,y) <| displayMass cell
 
-displayMass mass =
-    group [filled black <| circle ((radius mass)+2), filled red <| circle (radius mass),
-                     text <| fromString <| toString <| mass/100]
+displayMass cell =
+    group [filled black <| circle ((radius cell.mass)+2), filled red <| circle (radius cell.mass),
+                     text <| fromString <| toString <| cell.mass/100]
 
 initGrid world =
     let count = toFloat <| 2 * ((max world.view.w world.view.h) // (spacing*2))
@@ -133,7 +161,7 @@ initGrid world =
 display world =
     let (Just player) = head world.players
         displayOffset form = collage world.view.w world.view.h [ move (-player.x,-player.y) form]
-        playerCells = collage world.view.w world.view.h [displayMass player.mass]
+        playerCells = collage world.view.w world.view.h <| map (\x -> move (x.x-player.x,x.y-player.y) <| displayMass x) world.players
         pellets = displayOffset <| group <| map displayPellet world.pellets
         nuggets = displayOffset <| group <| map displayOther world.nuggets        
         gridOffset coord = -(toFloat (floor coord % spacing))
@@ -148,7 +176,7 @@ frames = Signal.map Frame frame
 cursors = Signal.map Point Mouse.position
 dimensions = Signal.map Viewport (Window.dimensions)
 
-inputs = Signal.mergeMany [dimensions,frames,cursors,eject]
+inputs = Signal.mergeMany [dimensions,frames,cursors,eject,split]
 
 main =
     let states = Signal.Extra.foldp' update start inputs
