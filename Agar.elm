@@ -31,7 +31,7 @@ start u =
 
 -- Update
 
-type Update = Viewport (Int, Int) | Frame Float | Point (Int, Int) | Eject Bool | Split Bool
+type Update = Viewport (Int, Int) | Frame Float | Point (Int, Int) | Eject Bool | Split Bool | Cheat Bool
 
 minx = -5000
 maxx = 5000
@@ -56,6 +56,9 @@ update u world =
         Point coords -> {world | aim <- addPair (-world.view.w//2,-world.view.h//2) coords}
         Eject True -> spawn world
         Split True -> splitCell world
+        Cheat True ->
+            let doubl player = {player | mass <- 2 * player.mass}
+            in {world | players <- map doubl world.players}
         Frame dt ->
             let fps = Debug.watch "fps" <| floor (1000/dt)
             in eat <| slide (glide world dt) dt
@@ -172,11 +175,12 @@ display world =
 
 split = Signal.map Split Keyboard.space
 eject = Signal.map Eject (Keyboard.isDown 87)
+grow = Signal.map Cheat (Keyboard.isDown 88)
 frames = Signal.map Frame frame
 cursors = Signal.map Point Mouse.position
 dimensions = Signal.map Viewport (Window.dimensions)
 
-inputs = Signal.mergeMany [dimensions,frames,cursors,eject,split]
+inputs = Signal.mergeMany [dimensions,frames,cursors,eject,split,grow]
 
 main =
     let states = Signal.Extra.foldp' update start inputs
