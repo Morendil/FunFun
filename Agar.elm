@@ -148,7 +148,7 @@ displayOther cell =
     in move (x,y) <| displayMass cell
 
 displayMass cell =
-    group [filled black <| circle ((radius cell.mass)+2), filled red <| circle (radius cell.mass),
+    group [filled black <| circle (radius cell.mass), filled red <| circle ((radius cell.mass)-2),
                      text <| fromString <| toString <| cell.mass/100]
 
 initGrid world =
