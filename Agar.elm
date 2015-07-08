@@ -29,6 +29,11 @@ start u =
                 grid = toForm Graphics.Element.empty
         }
 
+distance cell1 cell2 =
+    let (x1,y1) = let {x,y} = cell1 in (x,y)
+        (x2,y2) = let {x,y} = cell2 in (x,y)
+    in sqrt ((x1-x2)^2+(y1-y2)^2)
+
 -- Update
 
 type Update = Viewport (Int, Int) | Frame Float | Point (Int, Int) | Eject Bool | Split Bool | Cheat Bool
@@ -114,8 +119,7 @@ glide world dt =
     {world | players <- map (glideOne world dt) world.players}
 
 eatOne world player = 
-    let distance (x1,y1) (x2,y2) = sqrt ((x1-x2)^2+(y1-y2)^2)
-        inRange pellet = distance (pellet.x,pellet.y) (player.x,player.y) < (radius player.mass)
+    let inRange pellet = distance pellet player < (radius player.mass)
         eatable pellet = (pellet.mass * 1.25) < player.mass
         (eatenPellets,pellets') = partition (inRange `and` eatable) world.pellets
         (eatenNuggets,nuggets') = partition (inRange `and` eatable) world.nuggets
