@@ -52,19 +52,19 @@ displayMass cell =
     group [filled black <| circle (radius cell.mass), filled red <| circle ((radius cell.mass)-2),
                      text <| fromString <| toString <| cell.mass/100]
 
-displayGrid world =
+displayGrid world player =
     let count = toFloat <| 2 * ((max world.view.w world.view.h) // (spacing*2))
         lines = group <|
                     map (\k -> traced (dotted gray) <| segment (k*spacing,-1000) (k*spacing,1000)) [-count/2..1+count/2] ++
                     map (\k -> traced (dotted gray) <| segment (-1000,k*spacing) (1000,k*spacing)) [-count/2..1+count/2]
-    in lines
+        gridOffset coord = -(toFloat (floor coord % spacing))
+    in collage world.view.w world.view.h [ move (gridOffset player.x,gridOffset player.y) <| lines]
 
 display world =
     let (Just player) = head world.players
         playerCells = collage world.view.w world.view.h <|
             map (\x -> move (x.x-player.x,x.y-player.y) <| displayMass x) world.players
-        gridOffset coord = -(toFloat (floor coord % spacing))
-        grid = collage world.view.w world.view.h [ move (gridOffset player.x,gridOffset player.y) <| displayGrid world]
+        grid = displayGrid world player
     in layers [grid,playerCells]
 
 -- Signals
