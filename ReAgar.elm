@@ -8,6 +8,7 @@ import List exposing (..)
 import Color exposing (..)
 import Random exposing (..)
 import Text exposing (..)
+import Easing exposing (..)
 
 import Debug
 import Window
@@ -21,8 +22,7 @@ start u =
     case u of
         Viewport (w,h) -> updateViewport (w,h) {
                 view={w=0,h=0},
-                players=[{x=0,y=0,dx=0,dy=0,mass=1000}],
-                aim=(0,0)
+                players=[{pos=(0,0),vel=(0,0),mass=1000},{pos=(25,25),vel=(0,0),mass=1000}]
         }
 
 -- Update
@@ -32,16 +32,36 @@ type Update = Viewport (Int, Int) | Frame Float | Point (Int, Int)
 update u world = 
     case u of
         Viewport vp -> updateViewport vp world
-        Point coords -> {world | aim <- addPair (-world.view.w//2,-world.view.h//2) coords}
+        Point coords ->
+            let center = (world.view.w//2,world.view.h//2)
+                (x,y) = (floatPair (subPair coords center))
+            in updateVelocities (x,-y) world
         Frame dt ->
             let fps = Debug.watch "fps" <| floor (1000/dt)
-            in world
+            in updatePositions world
         _ -> world
 
 updateViewport (w,h) world =
     let view = world.view
         view' = {view | w<-w,h<-h}
     in {world | view <- view'}
+
+updatePlayerPosition player =
+    let (dx,dy) = let (ox,oy) = player.vel in (ox/100, oy/100)
+    in {player | pos <- addPair player.pos (dx,dy)}
+
+updatePositions world =
+    let players' = map updatePlayerPosition world.players
+    in {world | players <- players'}
+
+updatePlayerVelocity aim world player =
+    let (Just leader) = head world.players
+        velocity = subPair aim player.pos
+    in {player | vel <- velocity}
+
+updateVelocities aim world =
+    let players' = map (updatePlayerVelocity aim world) world.players
+    in {world | players <- players'}
 
 -- Display
 
@@ -58,13 +78,13 @@ displayGrid world player =
                     map (\k -> traced (dotted gray) <| segment (k*spacing,-1000) (k*spacing,1000)) [-count/2..1+count/2] ++
                     map (\k -> traced (dotted gray) <| segment (-1000,k*spacing) (1000,k*spacing)) [-count/2..1+count/2]
         gridOffset coord = -(toFloat (floor coord % spacing))
-    in collage world.view.w world.view.h [ move (gridOffset player.x,gridOffset player.y) <| lines]
+    in collage world.view.w world.view.h [ move (mapPair gridOffset player.pos) <| lines]
 
 display world =
-    let (Just player) = head world.players
+    let (Just leader) = head world.players
         playerCells = collage world.view.w world.view.h <|
-            map (\x -> move (x.x-player.x,x.y-player.y) <| displayMass x) world.players
-        grid = displayGrid world player
+            map (\x -> move (subPair x.pos leader.pos) <| displayMass x) world.players
+        grid = displayGrid world leader
     in layers [grid,playerCells]
 
 -- Signals

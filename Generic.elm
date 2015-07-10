@@ -15,8 +15,15 @@ takeWhile predicate list =
     x::xs   -> if | (predicate x) -> x :: takeWhile predicate xs
                   | otherwise -> []
 
+floatPair (x,y) =
+  (toFloat x, toFloat y)
+vecLength (x,y) = sqrt (x^2+y^2)
+
+mapPair fn (x,y) = (fn x, fn y)
 addPair (x1,y1) (x2,y2) =
     (x1+x2,y1+y2)
+subPair (x1,y1) (x2,y2) =
+    (x1-x2,y1-y2)
 
 cartesian fn list1 list2 =
     concatMap (\x -> map (fn x) list2) list1
