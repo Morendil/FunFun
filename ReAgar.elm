@@ -22,7 +22,8 @@ start u =
     case u of
         Viewport (w,h) -> updateViewport (w,h) {
                 view={w=0,h=0},
-                players=[{pos=(0,0),vel=(0,0),mass=1000},{pos=(25,25),vel=(0,0),mass=1000}]
+                players=[{pos=(0,0),vel=(0,0),mass=1000},{pos=(30,30),vel=(0,0),mass=2000}],
+                aim=(0,0)
         }
 
 -- Update
@@ -34,8 +35,8 @@ update u world =
         Viewport vp -> updateViewport vp world
         Point coords ->
             let center = (world.view.w//2,world.view.h//2)
-                (x,y) = (floatPair (subPair coords center))
-            in updateVelocities (x,-y) world
+                (x,y) = floatPair (subPair coords center)
+            in {world | aim <- (x,-y)}
         Frame dt ->
             let fps = Debug.watch "fps" <| floor (1000/dt)
             in updatePositions world
@@ -46,21 +47,14 @@ updateViewport (w,h) world =
         view' = {view | w<-w,h<-h}
     in {world | view <- view'}
 
-updatePlayerPosition player =
-    let (dx,dy) = let (ox,oy) = player.vel in (ox/100, oy/100)
+updatePlayerPosition world player =
+    let (Just leader) = head world.players
+        velocity = addPair world.aim (subPair leader.pos player.pos)
+        (dx,dy) = let (ox,oy) = velocity in (10*ox/player.mass,10*oy/player.mass)
     in {player | pos <- addPair player.pos (dx,dy)}
 
 updatePositions world =
-    let players' = map updatePlayerPosition world.players
-    in {world | players <- players'}
-
-updatePlayerVelocity aim world player =
-    let (Just leader) = head world.players
-        velocity = subPair aim player.pos
-    in {player | vel <- velocity}
-
-updateVelocities aim world =
-    let players' = map (updatePlayerVelocity aim world) world.players
+    let players' = map (updatePlayerPosition world) world.players
     in {world | players <- players'}
 
 -- Display
