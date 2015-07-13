@@ -50,7 +50,9 @@ updateViewport (w,h) world =
 updatePlayerPosition world player =
     let (Just leader) = head world.players
         velocity = addPair world.aim (subPair leader.pos player.pos)
-        (dx,dy) = let (ox,oy) = velocity in (10*ox/player.mass,10*oy/player.mass)
+        scale upto dist = ease easeInOutQuint Easing.float 0 upto 100 dist
+        (ox,oy) = velocity
+        (dx,dy) = (scale (1000/player.mass) ox, scale (1000/player.mass) oy)
     in {player | pos <- addPair player.pos (dx,dy)}
 
 updatePositions world =
