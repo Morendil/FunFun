@@ -39,7 +39,7 @@ update u world =
             in {world | aim <- (x,-y)}
         Frame dt ->
             let fps = Debug.watch "fps" <| floor (1000/dt)
-            in updatePositions world
+            in updatePositions world dt
         _ -> world
 
 updateViewport (w,h) world =
@@ -47,16 +47,15 @@ updateViewport (w,h) world =
         view' = {view | w<-w,h<-h}
     in {world | view <- view'}
 
-updatePlayerPosition world player =
+updatePlayerPosition world dt player =
     let (Just leader) = head world.players
         velocity = addPair world.aim (subPair leader.pos player.pos)
         scale upto dist = ease easeInOutQuint Easing.float 0 upto 100 dist
-        (ox,oy) = velocity
-        (dx,dy) = (scale (1000/player.mass) ox, scale (1000/player.mass) oy)
-    in {player | pos <- addPair player.pos (dx,dy)}
+        (dx,dy) = let (ox,oy) = velocity in (1000*ox/player.mass,1000*oy/player.mass)
+    in {player | vel <- (dx,dy), pos <- addPair player.pos (dx*dt/1000,dy*dt/1000)}
 
-updatePositions world =
-    let players' = map (updatePlayerPosition world) world.players
+updatePositions world dt =
+    let players' = map (updatePlayerPosition world dt) world.players
     in {world | players <- players'}
 
 -- Display
@@ -80,8 +79,10 @@ display world =
     let (Just leader) = head world.players
         playerCells = collage world.view.w world.view.h <|
             map (\x -> move (subPair x.pos leader.pos) <| displayMass x) world.players
+        playerArrows = collage world.view.w world.view.h <|
+            map (\x -> traced (solid black) (segment (subPair x.pos leader.pos) (addPair x.vel (subPair x.pos leader.pos)))) world.players
         grid = displayGrid world leader
-    in layers [grid,playerCells]
+    in layers [grid,playerCells,playerArrows]
 
 -- Signals
 
