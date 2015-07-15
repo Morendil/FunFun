@@ -47,12 +47,16 @@ updateViewport (w,h) world =
         view' = {view | w<-w,h<-h}
     in {world | view <- view'}
 
+maxSpeed = 200
+
 updatePlayerPosition world dt player =
     let (Just leader) = head world.players
-        velocity = addPair world.aim (subPair leader.pos player.pos)
-        scale upto dist = ease easeInOutQuint Easing.float 0 upto 100 dist
-        (dx,dy) = let (ox,oy) = velocity in (1000*ox/player.mass,1000*oy/player.mass)
-    in {player | vel <- (dx,dy), pos <- addPair player.pos (dx*dt/1000,dy*dt/1000)}
+        direction = addPair world.aim (subPair leader.pos player.pos)
+        velocity = mapPair (\x -> (/) x player.mass) direction
+        original = vecLength direction
+        scaling = ease Easing.linear Easing.float 0 maxSpeed maxSpeed original
+        scaled = if original == 0 then velocity else mapPair ((*) (scaling / original)) velocity
+    in {player | vel <- scaled, pos <- addPair player.pos (mapPair ((*) dt) scaled)}
 
 updatePositions world dt =
     let players' = map (updatePlayerPosition world dt) world.players
@@ -80,9 +84,11 @@ display world =
         playerCells = collage world.view.w world.view.h <|
             map (\x -> move (subPair x.pos leader.pos) <| displayMass x) world.players
         playerArrows = collage world.view.w world.view.h <|
-            map (\x -> traced (solid black) (segment (subPair x.pos leader.pos) (addPair x.vel (subPair x.pos leader.pos)))) world.players
+            map (\x -> traced (solid black) (segment (subPair x.pos leader.pos) (addPair (mapPair ((*) 1000) x.vel) (subPair x.pos leader.pos)))) world.players
+        playerCircles = collage world.view.w world.view.h <|
+            map (\x -> move (subPair x.pos leader.pos) <| traced (solid black) (circle (maxSpeed * 1000 / x.mass))) world.players
         grid = displayGrid world leader
-    in layers [grid,playerCells,playerArrows]
+    in layers [grid,playerCells,playerArrows,playerCircles]
 
 -- Signals
 
