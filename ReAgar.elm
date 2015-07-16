@@ -54,7 +54,7 @@ updatePlayerPosition world dt player =
         direction = addPair world.aim (subPair leader.pos player.pos)
         velocity = mapPair (\x -> (/) x player.mass) direction
         original = vecLength direction
-        scaling = ease Easing.linear Easing.float 0 maxSpeed maxSpeed original
+        scaling = ease easeInOutCubic Easing.float 0 maxSpeed maxSpeed original
         scaled = if original == 0 then velocity else mapPair ((*) (scaling / original)) velocity
     in {player | vel <- scaled, pos <- addPair player.pos (mapPair ((*) dt) scaled)}
 
