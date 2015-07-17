@@ -49,17 +49,24 @@ updateViewport (w,h) world =
 
 maxSpeed = 200
 
-updatePlayerPosition world dt player =
+updatePlayerPosition world dt others player =
     let (Just leader) = head world.players
         direction = addPair world.aim (subPair leader.pos player.pos)
         velocity = mapPair (\x -> (/) x player.mass) direction
         original = vecLength direction
         scaling = ease easeInOutCubic Easing.float 0 maxSpeed maxSpeed original
         scaled = if original == 0 then velocity else mapPair ((*) (scaling / original)) velocity
-    in {player | vel <- scaled, pos <- addPair player.pos (mapPair ((*) dt) scaled)}
+        hit = filter (\x -> vecLength (subPair player.pos x.pos) < radius x.mass + radius player.mass) others
+        pos' = addPair player.pos (mapPair ((*) dt) scaled)
+    in case head hit of
+       Just other ->
+            let between = subPair other.pos player.pos
+                go = (dotProd between scaled) < 0
+            in {player | vel <- scaled, pos <- if go then pos' else player.pos}
+       _ -> {player | vel <- scaled, pos <- pos'}
 
 updatePositions world dt =
-    let players' = map (updatePlayerPosition world dt) world.players
+    let players' = mapAllBut (updatePlayerPosition world dt) world.players
     in {world | players <- players'}
 
 -- Display
@@ -87,8 +94,10 @@ display world =
             map (\x -> traced (solid black) (segment (subPair x.pos leader.pos) (addPair (mapPair ((*) 1000) x.vel) (subPair x.pos leader.pos)))) world.players
         playerCircles = collage world.view.w world.view.h <|
             map (\x -> move (subPair x.pos leader.pos) <| traced (solid black) (circle (maxSpeed * 1000 / x.mass))) world.players
+        interPlayerArrows = collage world.view.w world.view.h <|
+            cartesian (\x y -> traced (solid black) (segment (subPair x.pos leader.pos) (subPair y.pos leader.pos))) world.players world.players
         grid = displayGrid world leader
-    in layers [grid,playerCells,playerArrows,playerCircles]
+    in layers [grid,playerCells,playerArrows,playerCircles,interPlayerArrows]
 
 -- Signals
 

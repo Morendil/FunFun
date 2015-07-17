@@ -19,6 +19,7 @@ floatPair (x,y) =
   (toFloat x, toFloat y)
 vecLength (x,y) = sqrt (x^2+y^2)
 
+dotProd (x1,y1) (x2,y2) = x1*x2+y1*y2
 mapPair fn (x,y) = (fn x, fn y)
 addPair (x1,y1) (x2,y2) =
     (x1+x2,y1+y2)
