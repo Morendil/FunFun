@@ -49,13 +49,17 @@ updateViewport (w,h) world =
 
 maxSpeed = 200
 
-updatePlayerPosition world dt others player =
+updatePlayerVelocity world dt player =
     let (Just leader) = head world.players
         direction = addPair world.aim (subPair leader.pos player.pos)
         velocity = mapPair (\x -> (/) x player.mass) direction
         original = vecLength direction
         scaling = ease easeInOutCubic Easing.float 0 maxSpeed maxSpeed original
         scaled = if original == 0 then velocity else mapPair ((*) (scaling / original)) velocity
+    in {player | vel <- scaled}
+
+updatePlayerPosition world dt others player =
+    let scaled = player.vel
         hit = filter (\x -> vecLength (subPair player.pos x.pos) < radius x.mass + radius player.mass) others
         pos' = addPair player.pos (mapPair ((*) dt) scaled)
     in case head hit of
@@ -66,8 +70,9 @@ updatePlayerPosition world dt others player =
        _ -> {player | vel <- scaled, pos <- pos'}
 
 updatePositions world dt =
-    let players' = mapAllBut (updatePlayerPosition world dt) world.players
-    in {world | players <- players'}
+    let players' = map (updatePlayerVelocity world dt) world.players
+        players'' = mapAllBut (updatePlayerPosition world dt) players'
+    in {world | players <- players''}
 
 -- Display
 
