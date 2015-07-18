@@ -19,8 +19,11 @@ floatPair (x,y) =
   (toFloat x, toFloat y)
 vecLength (x,y) = sqrt (x^2+y^2)
 
+project vector onto = vecTimes onto ((dotProd vector onto) / (dotProd onto onto))
+vecTimes vector scalar = mapPair ((*) scalar) vector
 dotProd (x1,y1) (x2,y2) = x1*x2+y1*y2
 mapPair fn (x,y) = (fn x, fn y)
+betweenPair fn (x1,y1) (x2,y2) = (fn x1 x2, fn y1 y2)
 addPair (x1,y1) (x2,y2) =
     (x1+x2,y1+y2)
 subPair (x1,y1) (x2,y2) =

@@ -64,9 +64,14 @@ updatePlayerPosition world dt others player =
         pos' = addPair player.pos (mapPair ((*) dt) scaled)
     in case head hit of
        Just other ->
-            let between = subPair other.pos player.pos
-                go = (dotProd between scaled) < 0
-            in {player | vel <- scaled, pos <- if go then pos' else player.pos}
+            let between = subPair player.pos other.pos
+                towards = project player.vel between
+                escape = project other.vel between
+                normal = subPair player.vel towards
+                catchup = if vecLength escape > vecLength towards then towards else escape
+                go = (dotProd between scaled) > 0
+                pos'' = addPair player.pos (mapPair ((*) dt) (addPair normal catchup))
+            in {player | vel <- scaled, pos <- if go then pos' else pos''}
        _ -> {player | vel <- scaled, pos <- pos'}
 
 updatePositions world dt =
