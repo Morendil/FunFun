@@ -11,6 +11,7 @@ import Text exposing (..)
 import Easing exposing (..)
 
 import Debug
+import String
 import Window
 import Mouse
 import Keyboard
@@ -22,7 +23,7 @@ start u =
     case u of
         Viewport (w,h) -> updateViewport (w,h) {
                 view={w=0,h=0},
-                players=[{pos=(0,0),vel=(0,0),mass=1000,free=0}],
+                players=[{pos=(60,0),vel=(0,0),mass=1000,free=0},{pos=(0,0),vel=(0,0),mass=1000,free=0},{pos=(30,30),vel=(0,0),mass=2000,free=0}],
                 aim=(0,0)
         }
 
@@ -62,21 +63,20 @@ updatePlayerVelocity world dt player =
         scaled = if original == 0 then velocity else mapPair ((*) (scaling / original)) velocity
     in {player | vel <- scaled}
 
+adjustVelocityInCollision player other scaled =
+    let between = subPair player.pos other.pos
+        towards = project scaled between
+        escape = project other.vel between
+        normal = subPair scaled towards
+        catchup = if vecLength escape > vecLength towards then towards else escape
+        go = (dotProd between scaled) > 0
+    in if go then scaled else addPair normal catchup
+
 updatePlayerPosition world dt others player =
-    let scaled = player.vel
-        hit = filter (\x -> vecLength (subPair player.pos x.pos) < radius x.mass + radius player.mass) others
-        pos' = addPair player.pos (mapPair ((*) dt) scaled)
-    in case head hit of
-       Just other ->
-            let between = subPair player.pos other.pos
-                towards = project player.vel between
-                escape = project other.vel between
-                normal = subPair player.vel towards
-                catchup = if vecLength escape > vecLength towards then towards else escape
-                go = (dotProd between scaled) > 0
-                pos'' = addPair player.pos (mapPair ((*) dt) (addPair normal catchup))
-            in {player | vel <- scaled, pos <- if go then pos' else pos''}
-       _ -> {player | vel <- scaled, pos <- pos'}
+    let hit = filter (\x -> vecLength (subPair player.pos x.pos) < radius x.mass + radius player.mass) others
+        adjusted = foldr (adjustVelocityInCollision player) player.vel hit
+        apply vel pos = addPair pos (mapPair ((*) dt) vel)
+    in {player | vel <- adjusted, pos <- apply adjusted player.pos}
 
 updateFreePosition world dt player =
     let pos' = addPair player.pos (mapPair ((*) dt) player.vel)
@@ -122,10 +122,8 @@ display world =
             map (\x -> traced (solid black) (segment (subPair x.pos leader.pos) (addPair (mapPair ((*) 1000) x.vel) (subPair x.pos leader.pos)))) world.players
         playerCircles = collage world.view.w world.view.h <|
             map (\x -> move (subPair x.pos leader.pos) <| traced (solid black) (circle (maxSpeed * 1000 / x.mass))) world.players
-        interPlayerArrows = collage world.view.w world.view.h <|
-            cartesian (\x y -> traced (solid black) (segment (subPair x.pos leader.pos) (subPair y.pos leader.pos))) world.players world.players
         grid = displayGrid world leader
-    in layers [grid,playerCells,playerArrows,playerCircles,interPlayerArrows]
+    in layers [grid,playerCells,playerArrows,playerCircles]
 
 -- Signals
 
