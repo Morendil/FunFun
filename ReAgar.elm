@@ -22,13 +22,13 @@ start u =
     case u of
         Viewport (w,h) -> updateViewport (w,h) {
                 view={w=0,h=0},
-                players=[{pos=(0,0),vel=(0,0),mass=1000},{pos=(30,30),vel=(0,0),mass=2000}],
+                players=[{pos=(0,0),vel=(0,0),mass=1000,free=0}],
                 aim=(0,0)
         }
 
 -- Update
 
-type Update = Viewport (Int, Int) | Frame Float | Point (Int, Int)
+type Update = Viewport (Int, Int) | Frame Float | Point (Int, Int) | Eject Bool | Split Bool | Cheat Bool
 
 update u world = 
     case u of
@@ -40,6 +40,10 @@ update u world =
         Frame dt ->
             let fps = Debug.watch "fps" <| floor (1000/dt)
             in updatePositions world dt
+        Split True -> splitCell world
+        Cheat True ->
+            let doubl player = {player | mass <- 2 * player.mass}
+            in {world | players <- map doubl world.players}
         _ -> world
 
 updateViewport (w,h) world =
@@ -74,10 +78,24 @@ updatePlayerPosition world dt others player =
             in {player | vel <- scaled, pos <- if go then pos' else pos''}
        _ -> {player | vel <- scaled, pos <- pos'}
 
+updateFreePosition world dt player =
+    let pos' = addPair player.pos (mapPair ((*) dt) player.vel)
+    in {player | free <- max 0 (player.free-dt), pos <- pos', vel <- vecTimes player.vel 0.75 }
+
 updatePositions world dt =
-    let players' = map (updatePlayerVelocity world dt) world.players
+    let players' = map (updatePlayerVelocity world dt) (filter (\x -> x.free == 0) world.players)
         players'' = mapAllBut (updatePlayerPosition world dt) players'
-    in {world | players <- players''}
+        freeMoving = map (updateFreePosition world dt) (filter (\x -> x.free > 0) world.players)
+    in {world | players <- players'' ++ freeMoving}
+
+splitOne world cell =
+    if cell.mass < 3500 then [cell] else
+        let vel = if vecLength cell.vel == 0 then (1,1) else mapPair ((/) (vecLength cell.vel)) cell.vel
+            halve mass = 100 * (toFloat <| floor (mass/100)//2)
+        in [{cell | mass<-halve cell.mass},{cell | vel <- vel, free <- 400, mass<-halve cell.mass}]
+
+splitCell world =
+    {world | players <- concatMap (splitOne world) world.players}
 
 -- Display
 
@@ -115,7 +133,10 @@ frames = Signal.map Frame frame
 cursors = Signal.map Point Mouse.position
 dimensions = Signal.map Viewport (Window.dimensions)
 
-inputs = Signal.mergeMany [dimensions,frames,cursors]
+grow = Signal.map Cheat (Keyboard.isDown 88)
+split = Signal.map Split Keyboard.space
+
+inputs = Signal.mergeMany [dimensions,frames,cursors,grow,split]
 
 main =
     let states = Signal.Extra.foldp' update start inputs
