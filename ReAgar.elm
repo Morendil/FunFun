@@ -63,19 +63,13 @@ updatePlayerVelocity world dt player =
         scaled = if original == 0 then velocity else mapPair ((*) (scaling / original)) velocity
     in {player | vel <- scaled}
 
-adjustVelocityInCollision player other scaled =
-    let between = subPair player.pos other.pos
-        towards = project scaled between
-        escape = project other.vel between
-        normal = subPair scaled towards
-        catchup = if vecLength escape > vecLength towards then towards else escape
-        go = (dotProd between scaled) > 0
-    in if go then scaled else addPair normal catchup
-
 updatePlayerPosition world dt others player =
-    let hit = filter (\x -> vecLength (subPair player.pos x.pos) < radius x.mass + radius player.mass) others
-        adjusted = foldr (adjustVelocityInCollision player) player.vel hit
-        apply vel pos = addPair pos (mapPair ((*) dt) vel)
+    let apply vel pos = addPair pos (mapPair ((*) dt) vel)
+        hit = filter (\x -> vecLength (subPair (apply player.vel player.pos) (apply x.vel x.pos)) < radius x.mass + radius player.mass) others
+        overlaps = map (\x -> vecLength (subPair (apply player.vel player.pos) (apply x.vel x.pos)) - (radius x.mass + radius player.mass)) hit
+        between = map (\x -> subPair player.pos x.pos) hit
+        reactions = map2 (\x y -> if dotProd x player.vel < 0 then vecTimes (normalize x) (-y/dt) else (0,0)) between overlaps
+        adjusted = foldr addPair player.vel reactions
     in {player | vel <- adjusted, pos <- apply adjusted player.pos}
 
 updateFreePosition world dt player =
@@ -123,7 +117,7 @@ display world =
         playerCircles = collage world.view.w world.view.h <|
             map (\x -> move (subPair x.pos leader.pos) <| traced (solid black) (circle (maxSpeed * 1000 / x.mass))) world.players
         grid = displayGrid world leader
-    in layers [grid,playerCells,playerArrows,playerCircles]
+    in layers [grid,playerCells]
 
 -- Signals
 

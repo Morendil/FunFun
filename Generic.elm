@@ -19,6 +19,7 @@ floatPair (x,y) =
   (toFloat x, toFloat y)
 vecLength (x,y) = sqrt (x^2+y^2)
 
+normalize vector = vecTimes vector (1/vecLength vector)
 project vector onto = vecTimes onto ((dotProd vector onto) / (dotProd onto onto))
 vecTimes vector scalar = mapPair ((*) scalar) vector
 dotProd (x1,y1) (x2,y2) = x1*x2+y1*y2
