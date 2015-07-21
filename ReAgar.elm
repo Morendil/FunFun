@@ -24,7 +24,8 @@ start u =
         Viewport (w,h) -> updateViewport (w,h) {
                 view={w=0,h=0},
                 players=[{pos=(60,0),vel=(0,0),mass=1000,free=0},{pos=(0,0),vel=(0,0),mass=1000,free=0},{pos=(30,30),vel=(0,0),mass=2000,free=0}],
-                aim=(0,0)
+                aim=(0,0),
+                time = 0
         }
 
 -- Update
@@ -40,7 +41,8 @@ update u world =
             in {world | aim <- (x,-y)}
         Frame dt ->
             let fps = Debug.watch "fps" <| floor (1000/dt)
-            in updatePositions world dt
+                world' = updatePositions world dt
+            in {world' | time <- world.time + dt}
         Split True -> splitCell world
         Cheat True ->
             let doubl player = {player | mass <- 2 * player.mass}
@@ -96,8 +98,8 @@ splitCell world =
 radius mass = sqrt (mass / 3.14)
 spacing = 40
 
-displayMass cell =
-    group [filled black <| circle (radius cell.mass), filled red <| circle ((radius cell.mass)-2),
+displayMass time cell =
+    group [filled black <| deform time (circle (radius cell.mass)), filled red <| deform time (circle ((radius cell.mass)-2)),
                      text <| fromString <| toString <| cell.mass/100]
 
 displayGrid world player =
@@ -111,13 +113,21 @@ displayGrid world player =
 display world =
     let (Just leader) = head world.players
         playerCells = collage world.view.w world.view.h <|
-            map (\x -> move (subPair x.pos leader.pos) <| displayMass x) world.players
+            map (\x -> move (subPair x.pos leader.pos) <| displayMass world.time x) world.players
         playerArrows = collage world.view.w world.view.h <|
             map (\x -> traced (solid black) (segment (subPair x.pos leader.pos) (addPair (mapPair ((*) 1000) x.vel) (subPair x.pos leader.pos)))) world.players
         playerCircles = collage world.view.w world.view.h <|
             map (\x -> move (subPair x.pos leader.pos) <| traced (solid black) (circle (maxSpeed * 1000 / x.mass))) world.players
         grid = displayGrid world leader
     in layers [grid,playerCells]
+
+deform time shape =
+    indexedMap (reduce time) shape
+
+reduce time index (x,y) =
+    let findex = toFloat index
+        zoom = 1 + (sin (time/32 + findex*2)/32)
+    in (x * zoom , y * zoom)
 
 -- Signals
 

@@ -20,5 +20,5 @@ deform time shape =
 
 reduce time index (x,y) =
     let findex = toFloat index
-        zoom = 1 + (sin (time/128 + findex)/16)
+        zoom = 1 + (sin (time/130 + findex*3)/64)
     in (x * zoom , y * zoom)
