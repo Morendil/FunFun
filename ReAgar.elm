@@ -21,16 +21,36 @@ import Signal.Extra
 
 start u =
     case u of
-        Viewport (w,h) -> updateViewport (w,h) {
+        Viewport (w,h) -> makePellets 1000 <| updateViewport (w,h) {
                 view={w=0,h=0},
-                players=[{pos=(60,0),vel=(0,0),mass=1000,free=0},{pos=(0,0),vel=(0,0),mass=1000,free=0},{pos=(30,30),vel=(0,0),mass=2000,free=0}],
+                players=[{pos=(0,0),vel=(0,0),mass=1000,free=0}],
                 aim=(0,0),
+                pellets=[],
+                nuggets=[],
+                seed=initialSeed 0,
                 time = 0
         }
 
 -- Update
 
 type Update = Viewport (Int, Int) | Frame Float | Point (Int, Int) | Eject Bool | Split Bool | Cheat Bool
+
+minx = -5000
+maxx = 5000
+miny = -5000
+maxy = 5000
+
+makePellets n world =
+    let (pellets',seed') = generate (Random.list n <| customGenerator pelletMaker) world.seed
+    in {world | seed <- seed', pellets <- pellets'}
+
+pelletMaker seed =
+    coordMaker minx maxx miny maxy seed
+
+coordMaker minx maxx miny maxy seed =
+    let (x,seed') = generate (Random.float minx maxx) seed
+        (y,seed'') = generate (Random.float miny maxy) seed'
+    in ({pos=(x,y),c=red,mass=100},seed'')
 
 update u world = 
     case u of
@@ -59,7 +79,7 @@ maxSpeed = 200
 updatePlayerVelocity world dt player =
     let (Just leader) = head world.players
         direction = addPair world.aim (subPair leader.pos player.pos)
-        velocity = mapPair (\x -> (/) x player.mass) direction
+        velocity = mapPair (\x -> (/) x (10 * radius player.mass)) direction
         original = vecLength direction
         scaling = ease easeInOutCubic Easing.float 0 maxSpeed maxSpeed original
         scaled = if original == 0 then velocity else mapPair ((*) (scaling / original)) velocity
@@ -97,10 +117,19 @@ splitCell world =
 
 radius mass = sqrt (mass / 3.14)
 spacing = 40
+pradius = 14
 
 displayMass time cell =
     group [filled black <| deform time (circle (radius cell.mass)), filled red <| deform time (circle ((radius cell.mass)-2)),
                      text <| fromString <| toString <| cell.mass/100]
+
+displayPellet leader time pellet =
+    let {pos,c} = pellet
+    in move (subPair pos leader.pos) <| filled c <| deform time (ngon 6 pradius)
+
+displayOther leader time cell =
+    let {pos,mass} = cell
+    in move (subPair pos leader.pos) <| displayMass time cell
 
 displayGrid world player =
     let count = toFloat <| 2 * ((max world.view.w world.view.h) // (spacing*2))
@@ -114,12 +143,10 @@ display world =
     let (Just leader) = head world.players
         playerCells = collage world.view.w world.view.h <|
             map (\x -> move (subPair x.pos leader.pos) <| displayMass world.time x) world.players
-        playerArrows = collage world.view.w world.view.h <|
-            map (\x -> traced (solid black) (segment (subPair x.pos leader.pos) (addPair (mapPair ((*) 1000) x.vel) (subPair x.pos leader.pos)))) world.players
-        playerCircles = collage world.view.w world.view.h <|
-            map (\x -> move (subPair x.pos leader.pos) <| traced (solid black) (circle (maxSpeed * 1000 / x.mass))) world.players
+        pellets = collage world.view.w world.view.h <| map (displayPellet leader world.time) world.pellets
+        nuggets = collage world.view.w world.view.h <| map (displayOther leader world.time) world.nuggets
         grid = displayGrid world leader
-    in layers [grid,playerCells]
+    in layers [grid,pellets,nuggets,playerCells]
 
 deform time shape =
     indexedMap (reduce time) shape
