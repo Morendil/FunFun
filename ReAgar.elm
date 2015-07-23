@@ -62,7 +62,8 @@ update u world =
         Frame dt ->
             let fps = Debug.watch "fps" <| floor (1000/dt)
                 world' = updatePositions world dt
-            in {world' | time <- world.time + dt}
+                world'' = eat world'
+            in {world'' | time <- world.time + dt}
         Split True -> splitCell world
         Cheat True ->
             let doubl player = {player | mass <- 2 * player.mass}
@@ -74,7 +75,7 @@ updateViewport (w,h) world =
         view' = {view | w<-w,h<-h}
     in {world | view <- view'}
 
-maxSpeed = 200
+maxSpeed = 70
 
 updatePlayerVelocity world dt player =
     let (Just leader) = head world.players
@@ -112,6 +113,23 @@ splitOne world cell =
 
 splitCell world =
     {world | players <- concatMap (splitOne world) world.players}
+
+eatOne world player =
+    let inRange pellet = vecLength (subPair pellet.pos player.pos) < (radius player.mass)
+        eatable pellet = (pellet.mass * 1.25) < player.mass
+        (eatenPellets,pellets') = partition (inRange `and` eatable) world.pellets
+        (eatenNuggets,nuggets') = partition (inRange `and` eatable) world.nuggets
+        mass' = player.mass + sum (map .mass eatenPellets) + sum (map .mass eatenNuggets)
+        world' = {world | pellets <- pellets', nuggets <- nuggets'}
+        player' = {player | mass <- mass'}
+    in (world', player')
+
+eat world =
+    let reduce player (world,players) =
+        let (world',player') = eatOne world player
+        in (world',player' :: players)
+        (world',players') = foldr reduce (world,[]) world.players
+    in {world' | players <- players'}
 
 -- Display
 
