@@ -64,6 +64,7 @@ update u world =
                 world' = updatePositions world dt
                 world'' = eat world'
             in {world'' | time <- world.time + dt}
+        Eject True -> spawn world
         Split True -> splitCell world
         Cheat True ->
             let doubl player = {player | mass <- 2 * player.mass}
@@ -75,12 +76,12 @@ updateViewport (w,h) world =
         view' = {view | w<-w,h<-h}
     in {world | view <- view'}
 
-maxSpeed = 70
+maxSpeed = 200
 
 updatePlayerVelocity world dt player =
     let (Just leader) = head world.players
         direction = addPair world.aim (subPair leader.pos player.pos)
-        velocity = mapPair (\x -> (/) x (10 * radius player.mass)) direction
+        velocity = mapPair (\x -> (/) x (25 * radius player.mass)) direction
         original = vecLength direction
         scaling = ease easeInOutCubic Easing.float 0 maxSpeed maxSpeed original
         scaled = if original == 0 then velocity else mapPair ((*) (scaling / original)) velocity
@@ -97,13 +98,15 @@ updatePlayerPosition world dt others player =
 
 updateFreePosition world dt player =
     let pos' = addPair player.pos (mapPair ((*) dt) player.vel)
-    in {player | free <- max 0 (player.free-dt), pos <- pos', vel <- vecTimes player.vel 0.75 }
+    in {player | pos <- pos', vel <- vecTimes player.vel 0.75 }
 
 updatePositions world dt =
     let players' = map (updatePlayerVelocity world dt) (filter (\x -> x.free == 0) world.players)
         players'' = mapAllBut (updatePlayerPosition world dt) players'
         freeMoving = map (updateFreePosition world dt) (filter (\x -> x.free > 0) world.players)
-    in {world | players <- players'' ++ freeMoving}
+        freeMoving' = map (\x -> {x | free <- max 0 (x.free-dt)}) freeMoving
+        nuggets' = map (updateFreePosition world dt) world.nuggets
+    in {world | players <- players'' ++ freeMoving', nuggets <- nuggets'}
 
 splitOne world cell =
     if cell.mass < 3500 then [cell] else
@@ -127,6 +130,21 @@ eatOne world player =
 eat world =
     let reduce player (world,players) =
         let (world',player') = eatOne world player
+        in (world',player' :: players)
+        (world',players') = foldr reduce (world,[]) world.players
+    in {world' | players <- players'}
+
+spawnOne world player =
+    if player.mass < 3500 then (world,player) else
+    let direction = if vecLength player.vel == 0 then normalize (1,1) else normalize player.vel
+        nuggets' = [{pos=addPair player.pos (vecTimes direction (radius player.mass)),vel=vecTimes direction 0.5,mass=1200}]
+        player' = {player | mass <- player.mass - 1800}
+        world' = {world | nuggets <- nuggets' ++ world.nuggets}
+    in (world', player')
+
+spawn world =
+    let reduce player (world,players) =
+        let (world',player') = spawnOne world player
         in (world',player' :: players)
         (world',players') = foldr reduce (world,[]) world.players
     in {world' | players <- players'}
@@ -180,10 +198,11 @@ frames = Signal.map Frame frame
 cursors = Signal.map Point Mouse.position
 dimensions = Signal.map Viewport (Window.dimensions)
 
+eject = Signal.map Eject (Keyboard.isDown 87)
 grow = Signal.map Cheat (Keyboard.isDown 88)
 split = Signal.map Split Keyboard.space
 
-inputs = Signal.mergeMany [dimensions,frames,cursors,grow,split]
+inputs = Signal.mergeMany [dimensions,frames,cursors,grow,split,eject]
 
 main =
     let states = Signal.Extra.foldp' update start inputs
