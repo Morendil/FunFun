@@ -5,18 +5,18 @@ import Signal
 import Array
 import Debug
 
-time = fps 0.2
+nodes = Array.fromList ["All you can do is wait.", "You die."]
 
-states = Array.fromList ["All you can do is wait.", "You die."]
+start = { time = 0 }
 
-update state dt =
-    state + dt
+update dt world =
+    {world | time <- world.time + dt}
 
-display state =
-    let which = min (floor state//100) ((Array.length states)-1)
-        (Just value) = Array.get which states
+display world =
+    let which = min (floor world.time//1000) ((Array.length nodes)-1)
+        (Just value) = Array.get which nodes
     in text value
 
 main =
-    let states = Signal.foldp update 0 time
+    let states = Signal.foldp update start (fps 10)
     in Signal.map display states
