@@ -1,0 +1,28 @@
+body {
+  background-color: #F8F8F8;
+  font-size: 18px;
+  font-weight: normal;
+  line-height: 1.2em;
+  margin: 15px;
+  color: #333;
+  width:700px;
+}
+
+div.button {
+  position: relative;
+  text-align: center;
+  border: 1px solid black;
+  width: 100px;
+  margin-bottom: 5px;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+div.button div.progress {
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  z-index: -1;
+  height: 100%;
+  background-color: #DDDDDD;
+}
