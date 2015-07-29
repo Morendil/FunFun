@@ -18,6 +18,13 @@ div.button {
   cursor: pointer;
 }
 
+div.button.disabled, div.button.disabled:hover {
+  cursor: default;
+  border-color: #b2b2b2;
+  color: #b2b2b2;
+  text-decoration: none;
+}
+
 div.button div.progress {
   position: absolute;
   top: 0px;

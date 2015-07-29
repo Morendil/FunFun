@@ -11,7 +11,7 @@ import Debug
 
 nodes = Array.fromList [
         ("All you can do is wait.",3000),
-        ("You die.",0)
+        ("Game over. Restart?",0)
     ]
 
 start = { time = 0, node = 0 }
@@ -30,7 +30,7 @@ display world =
     let (Just value) = Array.get world.node nodes
         wait = snd value
         percent = if wait > 0 then (100 * (1 - (world.time / wait))) else 0
-    in div [class "button"] [
+    in div [class (if percent > 0 then "button disabled" else "button")] [
         text (fst value),
         div [class "progress", style [("width",String.concat [toString percent, "%"])]] []
     ]
