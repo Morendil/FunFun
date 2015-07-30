@@ -11,6 +11,7 @@ import Debug
 
 nodes = Array.fromList [
         ("All you can do is wait.",3000),
+        ("All you can do is wait some more.",3000),
         ("Game over. Restart?",0)
     ]
 
@@ -22,7 +23,7 @@ update dt world =
         (_,delay) = node
         next = world.node + 1
         limit = (Array.length nodes)-1
-        node' = if time' > delay then max next limit else world.node
+        node' = if time' > delay then min next limit else world.node
         time'' = if node' == world.node then time' else 0
     in {world | time <- time'', node <- node'}
 
