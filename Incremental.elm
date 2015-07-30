@@ -2,6 +2,7 @@ module Incremental where
 
 import Html exposing (text, div)
 import Html.Attributes exposing (class, style)
+import Html.Events exposing (onClick)
 import Time exposing (fps)
 import Signal
 
@@ -10,32 +11,46 @@ import Array
 import Debug
 
 nodes = Array.fromList [
-        ("All you can do is wait.",3000),
-        ("All you can do is wait some more.",3000),
-        ("Game over. Restart?",0)
+        {text="All you can do is wait.",wait=3000},
+        {text="And wait some more.",wait=3000},
+        {text="Game over. Restart?",wait=0}
     ]
 
 start = { time = 0, node = 0 }
 
-update dt world =
+update action world =
+    case action of
+        Frame dt -> updateFrame dt world
+        Goto node -> {world | node <- node, time <- 0}
+
+updateFrame dt world =
     let time' = world.time + dt
         (Just node) = Array.get world.node nodes
-        (_,delay) = node
         next = world.node + 1
         limit = (Array.length nodes)-1
-        node' = if time' > delay then min next limit else world.node
+        node' = if time' > node.wait then min next limit else world.node
         time'' = if node' == world.node then time' else 0
     in {world | time <- time'', node <- node'}
 
 display world =
     let (Just value) = Array.get world.node nodes
-        wait = snd value
-        percent = if wait > 0 then (100 * (1 - (world.time / wait))) else 0
-    in div [class (if percent > 0 then "button disabled" else "button")] [
-        text (fst value),
-        div [class "progress", style [("width",String.concat [toString percent, "%"])]] []
+        percent = if value.wait > 0 then (100 * (1 - (world.time / value.wait))) else 0
+    in div [class (if percent > 0 then "button disabled" else "button"),
+            onClick actions.address (Goto 0)] [
+        text value.text,
+        div [
+            class "progress",
+            style [("width",String.concat [toString percent, "%"])]
+        ] []
     ]
 
+type Action = Frame Float | Goto Int
+
+actions = Signal.mailbox (Goto 0)
+
 main =
-    let states = Signal.foldp update start (fps 30)
+    let frames = Signal.map Frame (fps 30)
+        clicks = actions.signal
+        signals = Signal.mergeMany [frames, clicks]
+        states = Signal.foldp update start signals
     in Signal.map display states
