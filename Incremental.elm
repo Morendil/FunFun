@@ -13,15 +13,15 @@ import Debug
 nodes = Array.fromList [
         {text="All you can do is wait.",wait=3000},
         {text="And wait some more.",wait=3000},
-        {text="Game over. Restart?",wait=0}
+        {text="Done. Start over?",wait=0}
     ]
 
-start = { time = 0, node = 0 }
+start = { time = 0, node = 0, count = 0 }
 
 update action world =
     case action of
         Frame dt -> updateFrame dt world
-        Goto node -> {world | node <- node, time <- 0}
+        Goto node -> {world | node <- node, time <- 0, count <- world.count + 1}
 
 updateFrame dt world =
     let time' = world.time + dt
@@ -35,14 +35,18 @@ updateFrame dt world =
 display world =
     let (Just value) = Array.get world.node nodes
         percent = if value.wait > 0 then (100 * (1 - (world.time / value.wait))) else 0
-    in div [class (if percent > 0 then "button disabled" else "button"),
-            onClick actions.address (Goto 0)] [
-        text value.text,
-        div [
-            class "progress",
-            style [("width",String.concat [toString percent, "%"])]
-        ] []
-    ]
+    in  div []
+        [
+            text <| String.concat ["You have ",toString world.count," widgets"],
+            div [class (if percent > 0 then "button disabled" else "button"),
+                onClick actions.address (Goto 0)] [
+                text value.text,
+                div [
+                    class "progress",
+                    style [("width",String.concat [toString percent, "%"])]
+                ] []
+            ]
+        ]
 
 type Action = Frame Float | Goto Int
 
