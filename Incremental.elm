@@ -35,9 +35,8 @@ updateFrame dt world =
 display world =
     let (Just value) = Array.get world.node nodes
         percent = if value.wait > 0 then (100 * (1 - (world.time / value.wait))) else 0
-    in  div []
-        [
-            text <| String.concat ["You have ",toString world.count," widgets"],
+        counters = if world.count > 0 then [text <| String.concat ["You have ",toString world.count," widgets"]] else []
+        clickers = [
             div [class (if percent > 0 then "button disabled" else "button"),
                 onClick actions.address (Goto 0)] [
                 text value.text,
@@ -47,6 +46,7 @@ display world =
                 ] []
             ]
         ]
+    in  div [] <| List.concat [counters, clickers]
 
 type Action = Frame Float | Goto Int
 
