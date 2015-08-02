@@ -10,9 +10,9 @@ import String
 import Array
 import Debug
 
-nodes = Array.fromList [
+nodes world = Array.fromList [
         {text="All you can do is wait.",wait=3000},
-        {text="And wait some more.",wait=3000},
+        {text="And wait some more.",wait=15000 / (1+world.count)},
         {text="Done. Start over?",wait=0}
     ]
 
@@ -25,15 +25,15 @@ update action world =
 
 updateFrame dt world =
     let time' = world.time + dt
-        (Just node) = Array.get world.node nodes
+        (Just node) = Array.get world.node (nodes world)
         next = world.node + 1
-        limit = (Array.length nodes)-1
+        limit = (Array.length (nodes world))-1
         node' = if time' > node.wait then min next limit else world.node
         time'' = if node' == world.node then time' else 0
     in {world | time <- time'', node <- node'}
 
 display world =
-    let (Just value) = Array.get world.node nodes
+    let (Just value) = Array.get world.node (nodes world)
         percent = if value.wait > 0 then (100 * (1 - (world.time / value.wait))) else 0
         counters = if world.count > 0 then [text <| String.concat ["You have ",toString world.count," widgets"]] else []
         clickers = [
