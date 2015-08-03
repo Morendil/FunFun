@@ -37,8 +37,10 @@ display world =
         percent = if value.wait > 0 then (100 * (1 - (world.time / value.wait))) else 0
         counters = if world.count > 0 then [text <| String.concat ["You have ",toString world.count," widgets"]] else []
         clickers = [
-            div [class (if percent > 0 then "button disabled" else "button"),
-                onClick actions.address (Goto 0)] [
+            div (if percent > 0 then [class "button disabled"]
+                 else [class ("button"), onClick actions.address (Goto 0)]
+                )
+                [
                 text value.text,
                 div [
                     class "progress",
