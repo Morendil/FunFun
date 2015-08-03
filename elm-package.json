@@ -19,7 +19,8 @@
         "evancz/elm-svg" : "1.0.2 <= v < 2.0.0",
         "evancz/elm-html" : "3.0.0 <= v < 4.0.0",
         "evancz/virtual-dom" : "1.2.3 <= v < 2.0.0",
-        "Dandandan/Easing" : "1.0.3 <= v < 2.0.0"
+        "Dandandan/Easing" : "1.0.3 <= v < 2.0.0",
+        "adam-r-kowalski/Elm-Css" : "1.0.1 <= v < 2.0.0"
     },
     "elm-version": "0.15.0 <= v < 0.16.0"
 }
