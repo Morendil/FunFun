@@ -5,11 +5,7 @@ import Html.Attributes exposing (class, style)
 import Html.Events exposing (onClick)
 import Time exposing (fps)
 
-import Css.Position as Position exposing (position,top)
-import Css.Padding as Padding
-import Css.Dimension exposing (..)
-import Css.Font exposing (family)
-import Css.Margin exposing (bottom)
+import ADR.Style exposing (..)
 
 import Signal
 
@@ -17,33 +13,27 @@ import String
 import Array
 import Debug
 
-entries = ["the room is freezing.","the fire is dead."]
+entries = ["the fire is dead.","the room is freezing."]
 
 notification string =
-    div [style <| notificationStyle []] [text string]
+    with notificationStyle "notification" [text string]
 
 notifications =
-    div [style <| notificationsStyle []] <| List.map notification entries
+    with notificationsStyle "notifications" <| List.map notification entries
 
-notificationStyle =
-    bottom 10
-
-notificationsStyle =
-    position Position.Absolute
-    << top 20
-    << width 200
-
-bodyStyle =
-    family "'Times New Roman', Times, serif"
-
-wrapperStyle =
-    width 700
-    << Padding.all 20 0 0 220
-    << position Position.Relative
+content =
+    with contentStyle "content" [
+        with outerSliderStyle "outerSlider" [
+            with mainStyle "main" [
+                div [] [text "A Dark Room"]
+            ]
+        ]
+    ]
 
 main =
-    div [style <| bodyStyle []] [
-        div [style <| wrapperStyle []] [
+    with bodyStyle "body" [
+        with wrapperStyle "wrapper" [
+            content,
             notifications
         ]
     ]
