@@ -13,7 +13,19 @@ import String
 import Array
 import Debug
 
+-- Model
+
+start = {time = 0}
+
 entries = ["the fire is dead.","the room is freezing."]
+
+-- Update
+
+update u world =
+    let (Frame dt) = u
+    in {world | time <- world.time + dt }
+
+-- Display
 
 notification string =
     with notificationStyle "notification" [text string]
@@ -35,10 +47,20 @@ content =
         ]
     ]
 
-main =
+display world =
     with bodyStyle "body" [
         with wrapperStyle "wrapper" [
             content,
-            notifications
+            notifications,
+            text <| toString world.time
         ]
     ]
+
+-- Signals
+
+type Update = Frame Float
+
+main =
+    let frames = Signal.map Frame (fps 30)
+        states = Signal.foldp update start frames
+    in Signal.map display states
