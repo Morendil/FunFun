@@ -25,7 +25,12 @@ content =
     with contentStyle "content" [
         with outerSliderStyle "outerSlider" [
             with mainStyle "main" [
-                div [] [text "A Dark Room"]
+                with headerStyle "header" [
+                    with headerButtonStyle "headerButton" [text "A Dark Room"]
+                ],
+                with identity "locationSlider" [
+                    with buttonStyle "headerButton" [text "light fire"]
+                ]
             ]
         ]
     ]
