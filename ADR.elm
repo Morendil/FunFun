@@ -15,23 +15,23 @@ import Debug
 
 -- Model
 
-start = {time = 0}
-
-entries = ["the fire is dead.","the room is freezing."]
+start = {time = 0, entries = ["the fire is dead.","the room is freezing."]}
 
 -- Update
 
 update u world =
-    let (Frame dt) = u
-    in {world | time <- world.time + dt }
+    case u of
+        Frame dt -> {world | time <- world.time + dt }
+        Action _ -> {world | entries <- "the fire is burning." :: world.entries}
+        _ -> world
 
 -- Display
 
 notification string =
     with notificationStyle "notification" [text string]
 
-notifications =
-    with notificationsStyle "notifications" <| List.map notification entries
+notifications world =
+    with notificationsStyle "notifications" <| List.map notification world.entries
 
 content =
     with contentStyle "content" [
@@ -41,7 +41,9 @@ content =
                     with headerButtonStyle "headerButton" [text "A Dark Room"]
                 ],
                 with identity "locationSlider" [
-                    with buttonStyle "headerButton" [text "light fire"]
+                    with buttonStyle "headerButton" [
+                        div [onClick clicks.address ()] [text "light fire"]
+                    ]
                 ]
             ]
         ]
@@ -51,16 +53,20 @@ display world =
     with bodyStyle "body" [
         with wrapperStyle "wrapper" [
             content,
-            notifications,
+            notifications world,
             text <| toString world.time
         ]
     ]
 
 -- Signals
 
-type Update = Frame Float
+type Update = Frame Float | Action ()
+
+clicks = Signal.mailbox ()
 
 main =
     let frames = Signal.map Frame (fps 30)
-        states = Signal.foldp update start frames
+        actions = Signal.map Action clicks.signal
+        signals = Signal.mergeMany [frames,actions]
+        states = Signal.foldp update start signals
     in Signal.map display states
