@@ -5,11 +5,13 @@ import Html exposing (div)
 import Html.Attributes as Attributes
 
 import Css.Dimension exposing (..)
+import Color exposing (..)
 
 import Css.Position as Position exposing (position,overflow,top,left)
 import Css.Float as Float exposing (float)
 import Css.Cursor as Cursor exposing (cursor)
 
+import Css.Background as Background
 import Css.Border as Border
 import Css.Border.Style as Style
 import Css.Text as Text
@@ -26,6 +28,19 @@ notificationsStyle =
     << top 20
     << width 200
     << height 700
+
+disabledStyle =
+  cursor Cursor.Default
+  << Border.color (rgb 178 178 178)
+  << Text.color (rgb 178 178 178)
+  << Text.decoration Text.NoDecoration
+
+cooldownStyle x =
+  (position Position.Absolute
+  << top 0
+  << left 0
+  << Position.zIndex -1
+  << Background.color (rgb 221 221 221)) (("height","100%") :: x)
 
 buttonStyle =
   position Position.Relative
@@ -74,3 +89,6 @@ bodyStyle =
 
 with styling class =
     div [Attributes.style <| styling [], Attributes.class class]
+
+adding styling class styles =
+    div [Attributes.style <| styling styles, Attributes.class class]
