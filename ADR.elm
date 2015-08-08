@@ -29,20 +29,24 @@ update u world =
 
 -- Display
 
+-- Buttons
+
+displayButtons world buttonList =
+    let visibleButtons = List.filter (isVisible world) buttonList
+        makeButton button = with buttonStyle "headerButton" [div [onClick clicks.address button.action] [text button.label]]
+        isVisible world button = button.visibleIf world
+    in List.map makeButton visibleButtons
+
+button label action visibleIf =
+    {label=label,action=action,visibleIf=visibleIf}
+
+-- Page
+
 notification string =
     with notificationStyle "notification" [text string]
 
 notifications world =
     with notificationsStyle "notifications" <| List.map notification world.entries
-
-button label action visibleIf =
-    (with buttonStyle "headerButton" [
-        div [onClick clicks.address action] [text label]
-    ], visibleIf)
-
-displayButtons world buttonList =
-    let visibleButtons = List.filter (\(_,trueIn) -> trueIn world) buttonList
-    in List.map fst visibleButtons
 
 content world =
     with contentStyle "content" [
