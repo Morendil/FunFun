@@ -80,12 +80,15 @@ notification string =
 notifications world =
     with notificationsStyle "notifications" <| List.map notification world.entries
 
+roomTitle world =
+    with headerButtonStyle "headerButton" [text <| if world.fire > 0 then "A Firelit Room" else "A Dark Room"]
+
 content world =
     with contentStyle "content" [
         with outerSliderStyle "outerSlider" [
             with mainStyle "main" [
                 with headerStyle "header" [
-                    with headerButtonStyle "headerButton" [text "A Dark Room"]
+                    roomTitle world
                 ],
                 with identity "locationSlider" <| displayButtons world [
                     button "light fire" LightFire (\world -> world.fire == 0),
