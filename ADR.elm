@@ -21,7 +21,9 @@ start = {time = 0, entries = ["the fire is dead.","the room is freezing."], fire
 
 update u world =
     case u of
-        Frame dt -> {world | time <- world.time + dt, log <- world.log - dt/200 }
+        Frame dt ->
+            let log' = if world.fire <= 0 then world.log else max 0 (world.log - dt/200)
+            in {world | time <- world.time + dt, log <- log' }
         Action LightFire ->
             let entries' = List.concat [["the light from the fire spills from the windows, out into the dark.", "the fire is burning."], world.entries]
             in {world | entries <- entries', fire <- 100}
@@ -98,7 +100,7 @@ display world =
         with wrapperStyle "wrapper" [
             content world,
             notifications world,
-            text <| toString world.time
+            text <| toString world
         ]
     ]
 
