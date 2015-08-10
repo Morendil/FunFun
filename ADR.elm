@@ -34,8 +34,9 @@ update u world =
 
 fireLevel world =
     if  | world.fire >= 100 -> "the fire is roaring."
-        | world.fire >= 10 && world.fire < 100 -> "the fire is burning."
-        | world.fire > 0 && world.fire < 10 -> "the fire is flcikering."
+        | world.fire >= 20 && world.fire < 100 -> "the fire is burning."
+        | world.fire >= 10 && world.fire < 20 -> "the fire is flickering."
+        | world.fire > 0 && world.fire < 10 -> "the fire is smoldering."
         | otherwise -> "the fire is dead."
 
 -- Buttons
