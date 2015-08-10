@@ -15,7 +15,7 @@ import Debug
 
 -- Model
 
-start = {time = 0, entries = ["the fire is dead.","the room is freezing."], fire = 0, log = 100}
+start = logFire <| logRoom {time = 0, entries = [], fire = 0, log = 100, room = 0}
 
 -- Update
 
@@ -23,11 +23,11 @@ update u world =
     case u of
         Frame dt -> {world | time <- world.time + dt, log <- world.log - dt/200 }
         Action LightFire ->
-            let entries' = List.concat [["the light from the fire spills from the windows, out into the dark.", "the fire is burning."], world.entries]
-            in {world | entries <- entries', fire <- 100}
+            let spill = "the light from the fire spills from the windows, out into the dark."
+                world' = logFire {world | fire <- 100}
+            in log spill world'
         Action StokeFire ->
-            let entries' = fireLevel world :: world.entries
-            in {world | entries <- entries', log <- 100, fire <- world.fire + 100}
+            logFire {world | log <- 100, fire <- world.fire + 100}
         _ -> world
 
 -- Display
@@ -38,6 +38,23 @@ fireLevel world =
         | world.fire >= 10 && world.fire < 20 -> "the fire is flickering."
         | world.fire > 0 && world.fire < 10 -> "the fire is smoldering."
         | otherwise -> "the fire is dead."
+
+roomLevel world =
+    if | world.room >= 4 -> "the room is hot."
+       | world.room == 3 -> "the room is warm."
+       | world.room == 2 -> "the room is mild."
+       | world.room == 1 -> "the room is cold."
+       | otherwise -> "the room is freezing."
+
+logRoom world =
+    log (roomLevel world) world
+
+logFire world =
+    log (fireLevel world) world
+
+log entry world =
+    let entries' = entry :: world.entries
+    in {world | entries <- entries'}
 
 -- Buttons
 
