@@ -21,7 +21,9 @@ start = logFire <| logRoom {time = 0, entries = [], fire = 0, log = 100, room = 
 
 update u world =
     case u of
-        Frame dt -> {world | time <- world.time + dt, log <- world.log - dt/200 }
+        Frame dt ->
+            let log' = if world.fire <= 0 then world.log else max 0 (world.log - dt/200)
+            in {world | time <- world.time + dt, log <- log' }
         Action LightFire ->
             let spill = "the light from the fire spills from the windows, out into the dark."
                 world' = logFire {world | fire <- 100}
@@ -96,12 +98,15 @@ notification string =
 notifications world =
     with notificationsStyle "notifications" <| List.map notification world.entries
 
+roomTitle world =
+    with headerButtonStyle "headerButton" [text <| if world.fire > 0 then "A Firelit Room" else "A Dark Room"]
+
 content world =
     with contentStyle "content" [
         with outerSliderStyle "outerSlider" [
             with mainStyle "main" [
                 with headerStyle "header" [
-                    with headerButtonStyle "headerButton" [text "A Dark Room"]
+                    roomTitle world
                 ],
                 with identity "locationSlider" <| displayButtons world [
                     button "light fire" LightFire (\world -> world.fire == 0),
@@ -116,7 +121,7 @@ display world =
         with wrapperStyle "wrapper" [
             content world,
             notifications world,
-            text <| toString world.time
+            text <| toString world
         ]
     ]
 
