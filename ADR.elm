@@ -26,19 +26,19 @@ update u world =
             in {world | time <- world.time + dt, log <- log' }
         Action LightFire ->
             let spill = "the light from the fire spills from the windows, out into the dark."
-                world' = logFire {world | fire <- 100}
+                world' = logFire {world | fire <- 3}
             in log spill world'
         Action StokeFire ->
-            logFire {world | log <- 100, fire <- world.fire + 100}
+            logFire {world | log <- 100, fire <- max 4 (world.fire + 1)}
         _ -> world
 
 -- Display
 
 fireLevel world =
-    if  | world.fire >= 100 -> "the fire is roaring."
-        | world.fire >= 20 && world.fire < 100 -> "the fire is burning."
-        | world.fire >= 10 && world.fire < 20 -> "the fire is flickering."
-        | world.fire > 0 && world.fire < 10 -> "the fire is smoldering."
+    if  | world.fire >= 4 -> "the fire is roaring."
+        | world.fire == 3 -> "the fire is burning."
+        | world.fire == 2 -> "the fire is flickering."
+        | world.fire == 1 -> "the fire is smoldering."
         | otherwise -> "the fire is dead."
 
 roomLevel world =
