@@ -15,7 +15,12 @@ import Debug
 
 -- Model
 
-start = logFire <| logRoom {time = 0, entries = [], fire = 0, log = 100, room = 0}
+start = logFire <| logRoom {time = 0, entries = [], fire = 0, log = 100, room = 0, queue = []}
+
+type Trigger = BuilderEnters
+actionFor trigger =
+    case trigger of
+        BuilderEnters -> log "a ragged stranger stumbles through the door and collapses in the corner."
 
 -- Update
 
@@ -23,14 +28,28 @@ update u world =
     case u of
         Frame dt ->
             let log' = if world.fire <= 0 then world.log else max 0 (world.log - dt/200)
-            in {world | time <- world.time + dt, log <- log' }
+                world' = {world | time <- world.time + dt, log <- log' }
+            in updateQueue world' dt
         Action LightFire ->
             let spill = "the light from the fire spills from the windows, out into the dark."
                 world' = logFire {world | fire <- 3}
-            in log spill world'
+                world'' = log spill world'
+            in queue world'' BuilderEnters 30000
         Action StokeFire ->
             logFire {world | log <- 100, fire <- max 4 (world.fire + 1)}
         _ -> world
+
+queue world action delay =
+    {world | queue <- (action,delay) :: world.queue}
+
+updateQueue world dt =
+    let updateDelay dt (action,delay) = (action,delay-dt)
+        queue' = List.map (updateDelay dt) world.queue
+        (ripe,waiting) = List.partition (\(action,delay) -> delay <= 0) queue'
+        ripeActions = List.map (actionFor << fst) ripe
+        composeAll = List.foldr (<<) identity
+        world' = (composeAll ripeActions) world
+    in {world' | queue <- waiting}
 
 -- Display
 
