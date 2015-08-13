@@ -17,10 +17,7 @@ import Debug
 
 start = logFire <| logRoom {time = 0, entries = [], fire = 0, log = 100, room = 0, queue = []}
 
-type Trigger = BuilderEnters
-actionFor trigger =
-    case trigger of
-        BuilderEnters -> log "a ragged stranger stumbles through the door and collapses in the corner."
+type Trigger = BuilderEnters | AdjustTemperature
 
 -- Update
 
@@ -34,13 +31,16 @@ update u world =
             let spill = "the light from the fire spills from the windows, out into the dark."
                 world' = logFire {world | fire <- 3}
                 world'' = log spill world'
-            in queue world'' BuilderEnters 30000
+            in queueMany [(BuilderEnters,30000),(AdjustTemperature,30000)] world''
         Action StokeFire ->
             logFire {world | log <- 100, fire <- max 4 (world.fire + 1)}
         _ -> world
 
-queue world action delay =
-    {world | queue <- (action,delay) :: world.queue}
+queueMany triggers world =
+    List.foldr queue world triggers
+
+queue trigger world =
+    {world | queue <- trigger :: world.queue}
 
 updateQueue world dt =
     let updateDelay dt (action,delay) = (action,delay-dt)
@@ -48,8 +48,20 @@ updateQueue world dt =
         (ripe,waiting) = List.partition (\(action,delay) -> delay <= 0) queue'
         ripeActions = List.map (actionFor << fst) ripe
         composeAll = List.foldr (<<) identity
-        world' = (composeAll ripeActions) world
-    in {world' | queue <- waiting}
+        world' = (composeAll ripeActions) {world | queue <- []}
+    in {world' | queue <- List.concat [world'.queue,waiting]}
+
+actionFor trigger =
+    case trigger of
+        BuilderEnters -> log "a ragged stranger stumbles through the door and collapses in the corner."
+        AdjustTemperature -> adjustTemperature
+        _ -> identity
+
+adjustTemperature world =
+    let room' = if | world.room > world.fire -> world.room - 1
+                   | world.room < world.fire -> world.room + 1
+                   | otherwise -> world.room
+    in queue (AdjustTemperature,30000) (logRoom {world | room <- room'})
 
 -- Display
 
