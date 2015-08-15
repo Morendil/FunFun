@@ -17,7 +17,7 @@ import Debug
 
 start = logFire <| logRoom {time = 0, entries = [], fire = 0, log = 100, room = 0, queue = []}
 
-type Trigger = BuilderEnters | AdjustTemperature
+type Trigger = BuilderEnters | AdjustTemperature | UnlockForest
 
 -- Update
 
@@ -53,8 +53,13 @@ updateQueue world dt =
 
 actionFor trigger =
     case trigger of
-        BuilderEnters -> log "a ragged stranger stumbles through the door and collapses in the corner."
+        BuilderEnters ->
+            log "a ragged stranger stumbles through the door and collapses in the corner."
+            << queue (UnlockForest,15000)
         AdjustTemperature -> adjustTemperature
+        UnlockForest ->
+            log "the wind howls outside."
+            << log "the wood is running out."
         _ -> identity
 
 adjustTemperature world =
