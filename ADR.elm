@@ -66,7 +66,10 @@ adjustTemperature world =
     let room' = if | world.room > world.fire -> world.room - 1
                    | world.room < world.fire -> world.room + 1
                    | otherwise -> world.room
-    in queue (AdjustTemperature,30000) (logRoom {world | room <- room'})
+        adjust world =
+            let world' = {world | room <- room'}
+            in if world.room == world'.room then world else logRoom world
+    in queue (AdjustTemperature,30000) (adjust world)
 
 -- Display
 
