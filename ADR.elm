@@ -15,7 +15,7 @@ import Debug
 
 -- Model
 
-start = logFire <| logRoom {time = 0, entries = [], fire = 0, log = 100, room = 0, queue = []}
+start = logFire <| logRoom {time = 0, entries = [], fire = 0, log = 100, room = 0, locations = [{title="A Dark Room"}], queue = []}
 
 type Trigger = BuilderEnters | AdjustTemperature | UnlockForest
 
@@ -29,7 +29,8 @@ update u world =
             in updateQueue world' dt
         Action LightFire ->
             let spill = "the light from the fire spills from the windows, out into the dark."
-                world' = logFire {world | fire <- 3}
+                locations' = [{title="A Firelit Room"}]
+                world' = logFire {world | fire <- 3, locations <- locations'}
                 world'' = log spill world'
             in queueMany [(BuilderEnters,30000),(AdjustTemperature,30000)] world''
         Action StokeFire ->
@@ -137,16 +138,18 @@ notification string =
 notifications world =
     with notificationsStyle "notifications" <| List.map notification world.entries
 
-roomTitle world =
-    with headerButtonStyle "headerButton" [text <| if world.fire > 0 then "A Firelit Room" else "A Dark Room"]
+roomTitle location =
+    with headerButtonStyle "headerButton" [text location.title]
+
+roomTitles world =
+    List.map roomTitle world.locations
 
 content world =
     with contentStyle "content" [
         with outerSliderStyle "outerSlider" [
             with mainStyle "main" [
-                with headerStyle "header" [
-                    roomTitle world
-                ],
+                with headerStyle "header"
+                    <| roomTitles world,
                 with identity "locationSlider" <| displayButtons world [
                     button "light fire" LightFire (\world -> world.fire == 0),
                     button "stoke fire" StokeFire (\world -> world.fire > 0) |> cooling (.log)
