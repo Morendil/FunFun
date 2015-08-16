@@ -61,7 +61,12 @@ actionFor trigger =
         UnlockForest ->
             log "the wood is running out."
             << log "the wind howls outside."
+            << addForest
         _ -> identity
+
+addForest world =
+    let locations' = List.concat [world.locations,[{title="A Silent Forest"}]]
+    in {world | locations <- locations'}
 
 adjustTemperature world =
     let room' = if | world.room > world.fire -> world.room - 1
