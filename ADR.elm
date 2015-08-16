@@ -58,8 +58,8 @@ actionFor trigger =
             << queue (UnlockForest,15000)
         AdjustTemperature -> adjustTemperature
         UnlockForest ->
-            log "the wind howls outside."
-            << log "the wood is running out."
+            log "the wood is running out."
+            << log "the wind howls outside."
         _ -> identity
 
 adjustTemperature world =
