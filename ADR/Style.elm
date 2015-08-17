@@ -13,11 +13,15 @@ import Css.Cursor as Cursor exposing (cursor)
 
 import Css.Background as Background
 import Css.Border as Border
+import Css.Border.Left as BorderLeft
 import Css.Border.Style as Style
 import Css.Text as Text
 import Css.Font as Font
 import Css.Padding as Padding
 import Css.Margin as Margin
+
+noStyle =
+  identity
 
 notificationStyle =
     Margin.bottom 10
@@ -52,13 +56,24 @@ buttonStyle =
   << Padding.all 5 10 5 10
   << cursor Cursor.Pointer
 
-headerButtonStyle =
+selectedHeaderStyle =
+  Text.decoration Text.Underline
+
+firstHeaderStyle =
   Font.size 18
   << float Float.Left
   << cursor Cursor.Pointer
   << Margin.left 0
   << Padding.left 0
-  << Text.decoration Text.Underline
+
+laterHeadersStyle =
+  Font.size 18
+  << float Float.Left
+  << cursor Cursor.Pointer
+  << BorderLeft.style Style.Solid
+  << BorderLeft.width 1
+  << Margin.left 10
+  << Padding.left 10
 
 headerStyle =
   Padding.bottom 20

@@ -15,7 +15,7 @@ import Debug
 
 -- Model
 
-start = logFire <| logRoom {time = 0, entries = [], fire = 0, log = 100, room = 0, locations = [{title="A Dark Room"}], queue = []}
+start = logFire <| logRoom {time = 0, entries = [], fire = 0, log = 100, room = 0, current = 0, locations = [{title="A Dark Room"}], queue = []}
 
 type Trigger = BuilderEnters | AdjustTemperature | UnlockForest
 
@@ -143,11 +143,13 @@ notification string =
 notifications world =
     with notificationsStyle "notifications" <| List.map notification world.entries
 
-roomTitle location =
-    with headerButtonStyle "headerButton" [text location.title]
+roomTitle selected index location =
+    let hereStyle = if selected == index then selectedHeaderStyle else noStyle
+        firstStyle = if index == 0 then firstHeaderStyle else laterHeadersStyle
+    in with (hereStyle << firstStyle) "headerButton" [text location.title]
 
 roomTitles world =
-    List.map roomTitle world.locations
+    List.indexedMap (roomTitle world.current) world.locations
 
 content world =
     with contentStyle "content" [
