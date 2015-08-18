@@ -151,13 +151,22 @@ roomTitle selected index location =
 roomTitles world =
     List.indexedMap (roomTitle world.current) world.locations
 
+storesContainer world =
+    with storesContainerStyle "storesContainer" <|
+    if List.length world.locations <= 1 then [] else
+    [
+        with storesStyle "stores" [
+            with legendStyle "legend" [text "stores"]
+        ]
+    ]
+
 content world =
     with contentStyle "content" [
         with outerSliderStyle "outerSlider" [
             with mainStyle "main" [
                 with headerStyle "header"
                     <| roomTitles world,
-                with identity "locationSlider" <| displayButtons world [
+                with identity "locationSlider" <| (storesContainer world) :: displayButtons world [
                     button "light fire" LightFire (\world -> world.fire == 0),
                     button "stoke fire" StokeFire (\world -> world.fire > 0) |> cooling (.log)
                 ]

@@ -7,7 +7,7 @@ import Html.Attributes as Attributes
 import Css.Dimension exposing (..)
 import Color exposing (..)
 
-import Css.Position as Position exposing (position,overflow,top,left)
+import Css.Position as Position exposing (position,overflow,top,left,right)
 import Css.Float as Float exposing (float)
 import Css.Cursor as Cursor exposing (cursor)
 
@@ -78,6 +78,25 @@ laterHeadersStyle =
 headerStyle =
   Padding.bottom 20
   << height 20
+
+storesStyle =
+  position Position.Relative
+  << Position.zIndex 10
+  << Border.style Style.Solid
+  << Border.width 1 1 1 1
+  << cursor Cursor.Default
+  << Padding.all 5 10 0 0
+  << width 200
+
+legendStyle =
+  position Position.Absolute
+  << Background.color Color.white
+  << left 8
+  << top -13
+
+storesContainerStyle =
+  position Position.Absolute
+  << right 0
 
 mainStyle = 
   position Position.Relative
