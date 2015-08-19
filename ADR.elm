@@ -156,7 +156,10 @@ storesContainer world =
     if List.length world.locations <= 1 then [] else
     [
         with storesStyle "stores" [
-            with legendStyle "legend" [text "stores"]
+            with legendStyle "legend" [text "stores"],
+            with rowKeyStyle "row_key" [text "wood"],
+            with rowValStyle "row_val" [text "4"],
+            with rowClearStyle "clear" []
         ]
     ]
 
