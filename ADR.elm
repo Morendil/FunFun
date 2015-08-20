@@ -15,7 +15,7 @@ import Debug
 
 -- Model
 
-start = logFire <| logRoom {time = 0, entries = [], fire = 0, log = 100, room = 0, current = 0, locations = [{title="A Dark Room"}], queue = []}
+start = logFire <| logRoom {time = 0, entries = [], wood = 0, fire = 0, log = 100, room = 0, current = 0, locations = [{title="A Dark Room"}], queue = []}
 
 type Trigger = BuilderEnters | AdjustTemperature | UnlockForest
 
@@ -34,7 +34,8 @@ update u world =
                 world'' = log spill world'
             in queueMany [(BuilderEnters,30000),(AdjustTemperature,30000)] world''
         Action StokeFire ->
-            logFire {world | log <- 100, fire <- max 4 (world.fire + 1)}
+            if world.fire > 0 then logFire {world | log <- 100, fire <- max 4 (world.fire + 1), wood <- world.wood - 1}
+            else log "not enough wood." world
         _ -> world
 
 queueMany triggers world =
@@ -66,7 +67,7 @@ actionFor trigger =
 
 addForest world =
     let locations' = List.concat [world.locations,[{title="A Silent Forest"}]]
-    in {world | locations <- locations'}
+    in {world | locations <- locations', wood <- 4}
 
 adjustTemperature world =
     let room' = if | world.room > world.fire -> world.room - 1
@@ -151,16 +152,17 @@ roomTitle selected index location =
 roomTitles world =
     List.indexedMap (roomTitle world.current) world.locations
 
+displayStore world title getter =
+    [with rowKeyStyle "row_key" [text title],
+     with rowValStyle "row_val" [text <| toString <| getter world],
+     with rowClearStyle "clear" []]
+
 storesContainer world =
     with storesContainerStyle "storesContainer" <|
     if List.length world.locations <= 1 then [] else
     [
-        with storesStyle "stores" [
-            with legendStyle "legend" [text "stores"],
-            with rowKeyStyle "row_key" [text "wood"],
-            with rowValStyle "row_val" [text "4"],
-            with rowClearStyle "clear" []
-        ]
+        with storesStyle "stores" <|
+            List.concat [[with legendStyle "legend" [text "stores"]],displayStore world "wood" .wood]
     ]
 
 content world =
