@@ -23,6 +23,39 @@ import Css.Margin as Margin
 noStyle =
   identity
 
+eventTitleStyle =
+  Font.weight 9
+  << position Position.Absolute
+  << top -12
+
+eventTitleAfterStyle x =
+  (Background.color Color.white
+    << position Position.Absolute
+    << left 0
+    << height 5
+    << Position.bottom 5
+    << Position.zIndex -1) (("width","100%") :: x)
+
+eventPanelBackingStyle x =
+  (Background.color Color.white
+  << position Position.Absolute
+  << height 700
+  << left -252
+  << top -75
+  << width 920
+  << Position.zIndex -2) (("opacity","0.6") :: x)
+
+eventPanelStyle =
+  Background.color Color.white
+  << Border.width 2 2 2 2
+  << Border.style Style.Solid
+  << Padding.all 2 2 2 2
+  << position Position.Absolute
+  << left 250
+  << top 90
+  << width 335
+  << Position.zIndex 20
+
 notificationStyle =
     Margin.bottom 10
 

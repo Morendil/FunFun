@@ -15,7 +15,10 @@ import Debug
 
 -- Model
 
-start = logFire <| logRoom {time = 0, entries = [], wood = 0, fire = 0, log = 100, room = 0, current = 0, locations = [{title="A Dark Room"}], queue = []}
+start = logFire <| logRoom {time = 0, entries = [],
+                            wood = 0, fire = 0, log = 100, room = 0, current = 0,
+                            event = Just "Nothing",
+                            locations = [{title="A Dark Room"}], queue = []}
 
 type Trigger = BuilderEnters | AdjustTemperature | UnlockForest
 
@@ -36,6 +39,8 @@ update u world =
         Action StokeFire ->
             if world.fire > 0 then logFire {world | log <- 100, fire <- max 4 (world.fire + 1), wood <- world.wood - 1}
             else log "not enough wood." world
+        Action EndEvent ->
+            {world | event <- Nothing}
         _ -> world
 
 queueMany triggers world =
@@ -179,18 +184,30 @@ content world =
         ]
     ]
 
+eventsPanel world =
+    case world.event of
+        Nothing -> text ""
+        Just title -> with eventPanelStyle "eventPanel" [
+            with eventPanelBackingStyle "eventPanelBefore" [text " "],
+            with eventTitleStyle "eventTitle" [text title, with eventTitleAfterStyle "eventTitleAfter" [text " "]],
+            with noStyle "eventDescription" [text "through the walls, shuffling noises can be heard."],
+            with buttonStyle "investigate" [text "investigate"],
+            makeButton world <| button "ignore" EndEvent (always True)
+        ]
+
 display world =
     with bodyStyle "body" [
         with wrapperStyle "wrapper" [
             content world,
             notifications world,
+            eventsPanel world,
             text <| toString world
         ]
     ]
 
 -- Signals
 
-type Choice = LightFire | StokeFire
+type Choice = LightFire | StokeFire | EndEvent
 type Update = Frame Float | Action Choice
 
 clicks = Signal.mailbox LightFire
