@@ -148,6 +148,14 @@ mainStyle =
   << height 700
   << overflow Position.Hidden
 
+locationStyle =
+  position Position.Relative
+  << float Float.Left
+  << width 700
+
+locationSliderStyle =
+  width 1400
+
 outerSliderStyle =
   position Position.Absolute
 

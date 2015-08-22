@@ -18,7 +18,10 @@ import Debug
 start = logFire <| logRoom {time = 0, entries = [],
                             wood = 0, fire = 0, log = 100, room = 0, current = 0,
                             event = Just "Nothing",
-                            locations = [{title="A Dark Room"}], queue = []}
+                            locations = [room], queue = []}
+
+room = {title="A Dark Room", actions=[LightFire, StokeFire], click=GoRoom}
+forest = {title="A Silent Forest", actions=[], click=GoOutside}
 
 type Trigger = BuilderEnters | AdjustTemperature | UnlockForest
 
@@ -32,7 +35,7 @@ update u world =
             in updateQueue world' dt
         Action LightFire ->
             let spill = "the light from the fire spills from the windows, out into the dark."
-                locations' = [{title="A Firelit Room"}]
+                locations' = [{room | title <- "A Firelit Room"}]
                 world' = logFire {world | fire <- 3, locations <- locations'}
                 world'' = log spill world'
             in queueMany [(BuilderEnters,30000),(AdjustTemperature,30000)] world''
@@ -41,6 +44,10 @@ update u world =
             else log "not enough wood." world
         Action EndEvent ->
             {world | event <- Nothing}
+        Action GoRoom ->
+            {world | current <- 0}
+        Action GoOutside ->
+            {world | current <- 1}
         _ -> world
 
 queueMany triggers world =
@@ -71,7 +78,7 @@ actionFor trigger =
         _ -> identity
 
 addForest world =
-    let locations' = List.concat [world.locations,[{title="A Silent Forest"}]]
+    let locations' = List.append world.locations [forest]
     in {world | locations <- locations', wood <- 4}
 
 adjustTemperature world =
@@ -110,6 +117,11 @@ log entry world =
     in {world | entries <- entries'}
 
 -- Buttons
+
+buttonFor action =
+    case action of
+        LightFire -> button "light fire" LightFire (\world -> world.fire == 0)
+        StokeFire -> button "stoke fire" StokeFire (\world -> world.fire > 0) |> cooling (.log)
 
 makeButton world button =
     let extra =
@@ -152,7 +164,8 @@ notifications world =
 roomTitle selected index location =
     let hereStyle = if selected == index then selectedHeaderStyle else noStyle
         firstStyle = if index == 0 then firstHeaderStyle else laterHeadersStyle
-    in with (hereStyle << firstStyle) "headerButton" [text location.title]
+        attrs = if selected == index then [] else [onClick clicks.address location.click]
+    in with (hereStyle << firstStyle) "headerButton" [div attrs [text location.title]]
 
 roomTitles world =
     List.indexedMap (roomTitle world.current) world.locations
@@ -170,16 +183,21 @@ storesContainer world =
             List.concat [[with legendStyle "legend" [text "stores"]],displayStore world "wood" .wood]
     ]
 
+displayLocations world =
+    let displayLocation location =
+        with locationStyle "locationPanel" <| displayButtons world (List.map buttonFor location.actions)
+    in List.map displayLocation world.locations
+
 content world =
-    with contentStyle "content" [
+    let offset = world.current * -700
+        style = [("left",String.concat [toString offset,"px"])]
+    in with contentStyle "content" [
         with outerSliderStyle "outerSlider" [
             with mainStyle "main" [
                 with headerStyle "header"
                     <| roomTitles world,
-                with identity "locationSlider" <| (storesContainer world) :: displayButtons world [
-                    button "light fire" LightFire (\world -> world.fire == 0),
-                    button "stoke fire" StokeFire (\world -> world.fire > 0) |> cooling (.log)
-                ]
+                adding locationSliderStyle "locationSlider" style <|
+                    (storesContainer world) :: displayLocations world
             ]
         ]
     ]
@@ -207,7 +225,7 @@ display world =
 
 -- Signals
 
-type Choice = LightFire | StokeFire | EndEvent
+type Choice = LightFire | StokeFire | EndEvent | GoRoom | GoOutside
 type Update = Frame Float | Action Choice
 
 clicks = Signal.mailbox LightFire
