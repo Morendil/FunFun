@@ -16,12 +16,14 @@ import Debug
 -- Model
 
 start = logFire <| logRoom {time = 0, entries = [],
-                            wood = 0, fire = 0, log = 100, room = 0, current = 0,
-                            event = Just "Nothing",
+                            wood = 0, traps = 0,
+                            log = 100, gather = 0,
+                            fire = 0, room = 0, current = 0,
+                            event = Nothing,
                             locations = [room], queue = []}
 
 room = {title="A Dark Room", actions=[LightFire, StokeFire], click=GoRoom}
-forest = {title="A Silent Forest", actions=[], click=GoOutside}
+forest = {title="A Silent Forest", actions=[GatherWood, CheckTraps], click=GoOutside}
 
 type Trigger = BuilderEnters | AdjustTemperature | UnlockForest
 
@@ -31,7 +33,8 @@ update u world =
     case u of
         Frame dt ->
             let log' = if world.fire <= 0 then world.log else max 0 (world.log - dt/200)
-                world' = {world | time <- world.time + dt, log <- log' }
+                gather' = max 0 (world.gather - dt/200)
+                world' = {world | time <- world.time + dt, log <- log', gather <- gather'}
             in updateQueue world' dt
         Action LightFire ->
             let spill = "the light from the fire spills from the windows, out into the dark."
@@ -42,6 +45,8 @@ update u world =
         Action StokeFire ->
             if world.fire > 0 then logFire {world | log <- 100, fire <- max 4 (world.fire + 1), wood <- world.wood - 1}
             else log "not enough wood." world
+        Action GatherWood ->
+            {world | gather <- 100, wood <- world.wood + 10}
         Action EndEvent ->
             {world | event <- Nothing}
         Action GoRoom ->
@@ -122,6 +127,8 @@ buttonFor action =
     case action of
         LightFire -> button "light fire" LightFire (\world -> world.fire == 0)
         StokeFire -> button "stoke fire" StokeFire (\world -> world.fire > 0) |> cooling (.log)
+        GatherWood -> button "gather wood" GatherWood (always True) |> cooling (.gather)
+        CheckTraps -> button "check traps" CheckTraps (\world -> world.traps > 0)
 
 makeButton world button =
     let extra =
@@ -226,7 +233,7 @@ display world =
 
 -- Signals
 
-type Choice = LightFire | StokeFire | EndEvent | GoRoom | GoOutside
+type Choice = LightFire | StokeFire | EndEvent | GoRoom | GoOutside | GatherWood | CheckTraps
 type Update = Frame Float | Action Choice
 
 clicks = Signal.mailbox LightFire
