@@ -175,8 +175,8 @@ displayStore world title getter =
      with rowValStyle "row_val" [text <| toString <| getter world],
      with rowClearStyle "clear" []]
 
-storesContainer world =
-    with storesContainerStyle "storesContainer" <|
+storesContainer world anti =
+    adding storesContainerStyle "storesContainer" anti <|
     if List.length world.locations <= 1 then [] else
     [
         with storesStyle "stores" <|
@@ -191,13 +191,14 @@ displayLocations world =
 content world =
     let offset = world.current * -700
         style = [("left",String.concat [toString offset,"px"])]
+        anti = [("right",String.concat [toString <| offset+700,"px"])]
     in with contentStyle "content" [
         with outerSliderStyle "outerSlider" [
             with mainStyle "main" [
                 with headerStyle "header"
                     <| roomTitles world,
                 adding locationSliderStyle "locationSlider" style <|
-                    (storesContainer world) :: displayLocations world
+                    (storesContainer world anti) :: displayLocations world
             ]
         ]
     ]

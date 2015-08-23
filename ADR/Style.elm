@@ -139,7 +139,6 @@ storesStyle =
 
 storesContainerStyle =
   position Position.Absolute
-  << right 0
 
 mainStyle = 
   position Position.Relative
@@ -154,7 +153,8 @@ locationStyle =
   << width 700
 
 locationSliderStyle =
-  width 1400
+  position Position.Absolute
+  << width 1400
 
 outerSliderStyle =
   position Position.Absolute
