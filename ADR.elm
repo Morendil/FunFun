@@ -1,7 +1,6 @@
 module ADR where
 
 import Html exposing (text, div)
-import Html.Attributes exposing (class, style)
 import Html.Events exposing (onClick)
 import Time exposing (fps)
 
@@ -15,6 +14,12 @@ import Debug
 
 -- Model
 
+type alias World = {time:Float, entries: List String, wood: Int, traps:Int, log: Float, gather: Float,
+                    fire: Int, room: Int, builder: Int, seenForest: Bool, current: Int, event: Maybe String,
+                    locations:List Location, queue:List (Trigger, Float)}
+type alias Location = {title:String, actions:List Choice, click:Choice}
+
+start : World
 start = logFire <| logRoom {time = 0, entries = [],
                             wood = 0, traps = 0,
                             log = 100, gather = 0,
@@ -30,33 +35,47 @@ type Trigger = BuilderEnters | AdjustTemperature | UnlockForest | UpdateBuilder
 
 -- Update
 
-update u world =
+update u =
     -- todo - bring the fire down a notch if unstoked
     case u of
-        Frame dt ->
-            let log' = if world.fire <= 0 then world.log else max 0 (world.log - dt/200)
-                gather' = max 0 (world.gather - dt/200)
-                world' = {world | time <- world.time + dt, log <- log', gather <- gather'}
-            in updateQueue world' dt
-        Action LightFire ->
-            let spill = "the light from the fire spills from the windows, out into the dark."
-                locations' = [{room | title <- "A Firelit Room"}]
-                world' = logFire {world | fire <- 3, locations <- locations'}
-                world'' = log spill world'
-            in queueMany [(BuilderEnters,30000),(AdjustTemperature,30000)] world''
-        Action StokeFire ->
-            if world.fire > 0 then logFire {world | log <- 100, fire <- max 4 (world.fire + 1), wood <- world.wood - 1}
-            else log "not enough wood." world
-        Action GatherWood ->
-            {world | gather <- 100, wood <- world.wood + 10}
-        Action EndEvent ->
-            {world | event <- Nothing}
-        Action GoRoom ->
-            {world | current <- 0}
-        Action GoOutside ->
-            let world' = {world | current <- 1, seenForest <- True}
-            in if world.seenForest then world' else log "the sky is grey and the wind blows relentlessly." world'
-        _ -> world
+        Frame  dt ->            advanceTime dt
+        Action LightFire ->     lightFire
+        Action StokeFire ->     stokeFire
+        Action GatherWood ->    gatherWood
+        Action EndEvent ->      endEvent
+        Action GoRoom ->        goRoom
+        Action GoOutside ->     goOutside
+        _ -> identity
+
+advanceTime dt world =
+    let log' = if world.fire <= 0 then world.log else max 0 (world.log - dt/200)
+        gather' = max 0 (world.gather - dt/200)
+        world' = {world | time <- world.time + dt, log <- log', gather <- gather'}
+    in updateQueue world' dt
+
+lightFire world =
+    let spill = "the light from the fire spills from the windows, out into the dark."
+        locations' = [{room | title <- "A Firelit Room"}]
+        world' = logFire {world | fire <- 3, locations <- locations'}
+        world'' = log spill world'
+    in queueMany [(BuilderEnters,30000),(AdjustTemperature,30000)] world''
+
+stokeFire world =
+    if world.fire > 0 then logFire {world | log <- 100, fire <- max 4 (world.fire + 1), wood <- world.wood - 1}
+    else log "not enough wood." world
+
+gatherWood world =
+    {world | gather <- 100, wood <- world.wood + 10}
+
+endEvent world =
+    {world | event <- Nothing}
+
+goRoom world =
+    {world | current <- 0}
+
+goOutside world =
+    let world' = {world | current <- 1, seenForest <- True}
+    in if world.seenForest then world' else log "the sky is grey and the wind blows relentlessly." world'
 
 queueMany triggers world =
     List.foldr queue world triggers
@@ -75,30 +94,16 @@ updateQueue world dt =
 
 actionFor trigger =
     case trigger of
-        BuilderEnters ->
-            log "a ragged stranger stumbles through the door and collapses in the corner."
-            << queue (UnlockForest,15000)
-            << queue (UpdateBuilder,30000)
+        BuilderEnters -> builderEnters
         UpdateBuilder -> updateBuilder
         AdjustTemperature -> adjustTemperature
-        UnlockForest ->
-            log "the wood is running out."
-            << log "the wind howls outside."
-            << addForest
+        UnlockForest -> unlockForest
         _ -> identity
 
-addForest world =
-    let locations' = List.append world.locations [forest]
-    in {world | locations <- locations', wood <- 4}
-
-adjustTemperature world =
-    let room' = if | world.room > world.fire -> world.room - 1
-                   | world.room < world.fire -> world.room + 1
-                   | otherwise -> world.room
-        adjust world =
-            let world' = {world | room <- room'}
-            in if world.room == world'.room then world' else logRoom world'
-    in queue (AdjustTemperature,30000) (adjust world)
+builderEnters =
+    log "a ragged stranger stumbles through the door and collapses in the corner."
+    << queue (UnlockForest,15000)
+    << queue (UpdateBuilder,30000)
 
 updateBuilder world =
     let advanceBuilder world =
@@ -110,6 +115,24 @@ updateBuilder world =
                  in log "the stranger in the corner stops shivering. her breathing calms." world'
         world' = if world.room >= 3 then advanceBuilder world else world
     in if world'.builder < 2 then queue (UpdateBuilder,30000) world' else world'
+
+adjustTemperature world =
+    let room' = if | world.room > world.fire -> world.room - 1
+                   | world.room < world.fire -> world.room + 1
+                   | otherwise -> world.room
+        adjust world =
+            let world' = {world | room <- room'}
+            in if world.room == world'.room then world' else logRoom world'
+    in queue (AdjustTemperature,30000) (adjust world)
+
+unlockForest =
+        log "the wood is running out."
+        << log "the wind howls outside."
+        << addForest
+
+addForest world =
+    let locations' = List.append world.locations [forest]
+    in {world | locations <- locations', wood <- 4}
 
 -- Display
 
