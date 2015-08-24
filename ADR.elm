@@ -18,18 +18,20 @@ import Debug
 start = logFire <| logRoom {time = 0, entries = [],
                             wood = 0, traps = 0,
                             log = 100, gather = 0,
-                            fire = 0, room = 0, current = 0,
+                            fire = 0, room = 0, builder = 0, seenForest = False,
+                            current = 0,
                             event = Nothing,
                             locations = [room], queue = []}
 
 room = {title="A Dark Room", actions=[LightFire, StokeFire], click=GoRoom}
 forest = {title="A Silent Forest", actions=[GatherWood, CheckTraps], click=GoOutside}
 
-type Trigger = BuilderEnters | AdjustTemperature | UnlockForest
+type Trigger = BuilderEnters | AdjustTemperature | UnlockForest | UpdateBuilder
 
 -- Update
 
 update u world =
+    -- todo - bring the fire down a notch if unstoked
     case u of
         Frame dt ->
             let log' = if world.fire <= 0 then world.log else max 0 (world.log - dt/200)
@@ -52,7 +54,8 @@ update u world =
         Action GoRoom ->
             {world | current <- 0}
         Action GoOutside ->
-            {world | current <- 1}
+            let world' = {world | current <- 1, seenForest <- True}
+            in if world.seenForest then world' else log "the sky is grey and the wind blows relentlessly." world'
         _ -> world
 
 queueMany triggers world =
@@ -75,6 +78,8 @@ actionFor trigger =
         BuilderEnters ->
             log "a ragged stranger stumbles through the door and collapses in the corner."
             << queue (UnlockForest,15000)
+            << queue (UpdateBuilder,30000)
+        UpdateBuilder -> updateBuilder
         AdjustTemperature -> adjustTemperature
         UnlockForest ->
             log "the wood is running out."
@@ -94,6 +99,17 @@ adjustTemperature world =
             let world' = {world | room <- room'}
             in if world.room == world'.room then world' else logRoom world'
     in queue (AdjustTemperature,30000) (adjust world)
+
+updateBuilder world =
+    let advanceBuilder world =
+          -- todo: should not see these logs immediately if you are outside
+          case world.builder of
+            0 -> let world' = {world | builder <- 1}
+                 in log "the stranger shivers, and mumbles quietly. her words are unintelligible." world'
+            1 -> let world' = {world | builder <- 2}
+                 in log "the stranger in the corner stops shivering. her breathing calms." world'
+        world' = if world.room >= 3 then advanceBuilder world else world
+    in if world'.builder < 2 then queue (UpdateBuilder,30000) world' else world'
 
 -- Display
 
