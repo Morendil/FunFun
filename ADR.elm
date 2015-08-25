@@ -2,7 +2,7 @@ module ADR where
 
 import Html exposing (text, div)
 import Html.Events exposing (onClick)
-import Time exposing (fps)
+import Time exposing (fps,minute,second)
 
 import ADR.Style exposing (..)
 
@@ -31,7 +31,14 @@ start = logFire <| logRoom {time = 0, entries = [],
 room = {title="A Dark Room", actions=[LightFire, StokeFire], click=GoRoom}
 forest = {title="A Silent Forest", actions=[GatherWood, CheckTraps], click=GoOutside}
 
-type Trigger = BuilderEnters | AdjustTemperature | UnlockForest | UpdateBuilder
+type Trigger = BuilderEnters | AdjustTemperature | CoolFire | UnlockForest | UpdateBuilder
+
+-- Constants
+
+fireCoolDelay = 5 * minute
+roomWarmDelay = 30 * second
+builderStateDelay = 30 * second
+needWoodDelay = 15 * second
 
 -- Update
 
@@ -55,12 +62,13 @@ advanceTime dt world =
 
 lightFire world =
     let spill = "the light from the fire spills from the windows, out into the dark."
-        locations' = [{room | title <- "A Firelit Room"}]
+        locations' = {room | title <- "A Firelit Room"} :: List.drop 1 world.locations
         world' = logFire {world | fire <- 3, locations <- locations'}
         world'' = log spill world'
-    in queueMany [(BuilderEnters,30000),(AdjustTemperature,30000)] world''
+    in queueMany [(BuilderEnters,builderStateDelay),(AdjustTemperature,roomWarmDelay),(CoolFire,fireCoolDelay)] world''
 
 stokeFire world =
+    -- todo - reset CoolFire countdown
     if world.fire > 0 then logFire {world | log <- 100, fire <- max 4 (world.fire + 1), wood <- world.wood - 1}
     else log "not enough wood." world
 
@@ -94,16 +102,17 @@ updateQueue world dt =
 
 actionFor trigger =
     case trigger of
-        BuilderEnters -> builderEnters
-        UpdateBuilder -> updateBuilder
-        AdjustTemperature -> adjustTemperature
-        UnlockForest -> unlockForest
+        BuilderEnters ->        builderEnters
+        UpdateBuilder ->        updateBuilder
+        AdjustTemperature ->    adjustTemperature
+        CoolFire ->             coolFire
+        UnlockForest ->         unlockForest
         _ -> identity
 
 builderEnters =
     log "a ragged stranger stumbles through the door and collapses in the corner."
-    << queue (UnlockForest,15000)
-    << queue (UpdateBuilder,30000)
+    << queue (UnlockForest,needWoodDelay)
+    << queue (UpdateBuilder,builderStateDelay)
 
 updateBuilder world =
     let advanceBuilder world =
@@ -113,8 +122,11 @@ updateBuilder world =
                  in log "the stranger shivers, and mumbles quietly. her words are unintelligible." world'
             1 -> let world' = {world | builder <- 2}
                  in log "the stranger in the corner stops shivering. her breathing calms." world'
+            2 -> let world' = {world | builder <- 3}
+                 in log "the stranger is standing by the fire. she says she can help. says she builds things." world'
+            _ -> world
         world' = if world.room >= 3 then advanceBuilder world else world
-    in if world'.builder < 2 then queue (UpdateBuilder,30000) world' else world'
+    in if world'.builder < 2 then queue (UpdateBuilder,builderStateDelay) world' else world'
 
 adjustTemperature world =
     let room' = if | world.room > world.fire -> world.room - 1
@@ -123,7 +135,13 @@ adjustTemperature world =
         adjust world =
             let world' = {world | room <- room'}
             in if world.room == world'.room then world' else logRoom world'
-    in queue (AdjustTemperature,30000) (adjust world)
+    in queue (AdjustTemperature,roomWarmDelay) (adjust world)
+
+coolFire world =
+    let adjust world =
+            let world' = {world | fire <- max 0 (world.fire-1)}
+            in if world.fire == world'.fire then world' else logFire world'
+    in queue (CoolFire,fireCoolDelay) (adjust world)
 
 unlockForest =
         log "the wood is running out."
