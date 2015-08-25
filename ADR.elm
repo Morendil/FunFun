@@ -84,7 +84,7 @@ endEvent world =
     {world | event <- Nothing}
 
 goRoom world =
-    {world | current <- 0}
+    updateBuilder {world | current <- 0}
 
 goOutside world =
     let world' = {world | current <- 1, seenForest <- True}
