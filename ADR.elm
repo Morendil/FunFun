@@ -61,6 +61,11 @@ advanceTime dt world =
     in updateQueue world' dt
 
 lightFire world =
+    if  | List.length world.locations == 1 -> firstFire world
+        | world.wood < 5 -> log "not enough wood to get the fire going." world
+        | otherwise -> logFire {world | fire <- 3, wood <- world.wood - 5}
+
+firstFire world =
     let spill = "the light from the fire spills from the windows, out into the dark."
         locations' = {room | title <- "A Firelit Room"} :: List.drop 1 world.locations
         world' = logFire {world | fire <- 3, locations <- locations'}
