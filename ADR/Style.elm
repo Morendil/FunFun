@@ -10,7 +10,9 @@ import Color exposing (..)
 import Css.Position as Position exposing (position,overflow,top,left,right)
 import Css.Float as Float exposing (float,clear)
 import Css.Cursor as Cursor exposing (cursor)
+import Css.Display as Display exposing (display)
 
+import Css.Shadow as Shadow
 import Css.Background as Background
 import Css.Border as Border
 import Css.Border.Left as BorderLeft
@@ -111,6 +113,18 @@ laterHeadersStyle =
 headerStyle =
   Padding.bottom 20
   << height 20
+
+tooltipStyle =
+  display Display.Block
+  << Padding.all 2 5 2 5
+  << Border.style Style.Solid
+  << Border.width 1 1 1 1
+  << position Position.Absolute
+  << Shadow.box [(-1, 3, 2, 0, rgba 102 102 102 0.8, False)]
+  << Background.color Color.white
+  << Position.zIndex 999
+  << left 2
+  << top 30
 
 rowKeyStyle =
   float Float.Left

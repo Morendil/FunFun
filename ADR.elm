@@ -268,12 +268,20 @@ displayStore world title getter =
      with rowClearStyle "clear" []]
 
 storesContainer world anti =
-    adding storesContainerStyle "storesContainer" anti <|
+    let stores =
+          [with storesStyle "stores" <|
+          List.concat [[with legendStyle "legend" [text "stores"]],displayStore world "wood" .wood]]
+        incomes =
+          [with tooltipStyle "incomes" [
+            with rowKeyStyle "row_key" [text "builder"],
+            with rowValStyle "row_val" [text "+2 per 10s"],
+            with rowClearStyle "clear" [],
+            with rowKeyStyle "row_key" [text "total"],
+            with rowValStyle "row_val" [text "+2 per 10s"],
+            with rowClearStyle "clear" []]]
+    in adding storesContainerStyle "storesContainer" anti <|
     if List.length world.locations <= 1 then [] else
-    [
-        with storesStyle "stores" <|
-            List.concat [[with legendStyle "legend" [text "stores"]],displayStore world "wood" .wood]
-    ]
+      if List.isEmpty world.incomes then stores else List.append stores incomes
 
 displayLocations world =
     let displayLocation location =
