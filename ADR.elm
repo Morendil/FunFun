@@ -12,16 +12,24 @@ import String
 import Array
 import Debug
 
+-- Generic
+
+composeMany = List.foldr (<<) identity
+
 -- Model
 
-type alias World = {time:Float, entries: List String, wood: Int, traps:Int, log: Float, gather: Float,
+type alias World = {time:Float, entries: List String, wood: Int, traps:Int,
+                    incomes: List Income,
+                    log: Float, gather: Float,
                     fire: Int, room: Int, builder: Int, seenForest: Bool, current: Int, event: Maybe String,
                     locations:List Location, queue:List (Trigger, Float)}
 type alias Location = {title:String, actions:List Choice, click:Choice}
+type alias Income = String
 
 start : World
 start = logFire <| logRoom {time = 0, entries = [],
                             wood = 0, traps = 0,
+                            incomes = [],
                             log = 100, gather = 0,
                             fire = 0, room = 0, builder = 0, seenForest = False,
                             current = 0,
@@ -31,7 +39,7 @@ start = logFire <| logRoom {time = 0, entries = [],
 room = {title="A Dark Room", actions=[LightFire, StokeFire], click=GoRoom}
 forest = {title="A Silent Forest", actions=[GatherWood, CheckTraps], click=GoOutside}
 
-type Trigger = BuilderEnters | AdjustTemperature | CoolFire | UnlockForest | UpdateBuilder
+type Trigger = BuilderEnters | AdjustTemperature | CoolFire | UnlockForest | UpdateBuilder | Income
 
 -- Constants
 
@@ -39,6 +47,7 @@ fireCoolDelay = 5 * minute
 roomWarmDelay = 30 * second
 builderStateDelay = 30 * second
 needWoodDelay = 15 * second
+incomeDelay = 10 * second
 
 -- Update
 
@@ -70,7 +79,9 @@ firstFire world =
         locations' = {room | title <- "A Firelit Room"} :: List.drop 1 world.locations
         world' = logFire {world | fire <- 3, locations <- locations'}
         world'' = log spill world'
-    in queueMany [(BuilderEnters,builderStateDelay),(AdjustTemperature,roomWarmDelay),(CoolFire,fireCoolDelay)] world''
+        actions = [(Income,incomeDelay),(BuilderEnters,builderStateDelay),
+                   (AdjustTemperature,roomWarmDelay),(CoolFire,fireCoolDelay)]
+    in queueMany actions world''
 
 stokeFire world =
     -- todo - reset CoolFire countdown
@@ -101,8 +112,7 @@ updateQueue world dt =
         queue' = List.map (updateDelay dt) world.queue
         (ripe,waiting) = List.partition (\(action,delay) -> delay <= 0) queue'
         ripeActions = List.map (actionFor << fst) ripe
-        composeAll = List.foldr (<<) identity
-        world' = (composeAll ripeActions) {world | queue <- []}
+        world' = (composeMany ripeActions) {world | queue <- []}
     in {world' | queue <- List.concat [world'.queue,waiting]}
 
 actionFor trigger =
@@ -112,6 +122,7 @@ actionFor trigger =
         AdjustTemperature ->    adjustTemperature
         CoolFire ->             coolFire
         UnlockForest ->         unlockForest
+        Income ->               distributeIncome
         _ -> identity
 
 builderEnters =
@@ -127,7 +138,7 @@ updateBuilder world =
                  in log "the stranger shivers, and mumbles quietly. her words are unintelligible." world'
             1 -> let world' = {world | builder <- 2}
                  in log "the stranger in the corner stops shivering. her breathing calms." world'
-            2 -> let world' = {world | builder <- 3}
+            2 -> let world' = {world | builder <- 3, incomes <- ["wood"]}
                  in log "the stranger is standing by the fire. she says she can help. says she builds things." world'
             _ -> world
         world' = if world.room >= 3 then advanceBuilder world else world
@@ -156,6 +167,16 @@ unlockForest =
 addForest world =
     let locations' = List.append world.locations [forest]
     in {world | locations <- locations', wood <- 4}
+
+distributeIncome world =
+    let applyIncomes = composeMany <| List.map incomeFor world.incomes
+        world' = applyIncomes world
+    in queue (Income,incomeDelay) world'
+
+incomeFor name world =
+    case name of
+        "wood" -> {world | wood <- world.wood + 2}
+        _ -> world
 
 -- Display
 
