@@ -27,14 +27,15 @@ type alias Location = {title:String, actions:List Choice, click:Choice}
 type alias Income = String
 
 start : World
-start = logFire <| logRoom {time = 0, entries = [],
-                            wood = 0, traps = 0,
-                            incomes = [],
-                            log = 100, gather = 0,
-                            fire = 0, room = 0, builder = 0, seenForest = False,
-                            current = 0,
-                            event = Nothing,
-                            locations = [room], queue = []}
+start = logFire <| logRoom newGame
+newGame =   {time = 0, entries = [],
+            wood = 0, traps = 0,
+            incomes = [],
+            log = 100, gather = 0,
+            fire = 0, room = 0, builder = 0, seenForest = False,
+            current = 0,
+            event = Nothing,
+            locations = [room], queue = []}
 
 room = {title="A Dark Room", actions=[LightFire, StokeFire], click=GoRoom}
 forest = {title="A Silent Forest", actions=[GatherWood, CheckTraps], click=GoOutside}
@@ -84,9 +85,9 @@ firstFire world =
     in queueMany actions world''
 
 stokeFire world =
-    -- todo - reset CoolFire countdown
-    if world.fire > 0 then logFire {world | log <- 100, fire <- max 4 (world.fire + 1), wood <- world.wood - 1}
-    else log "not enough wood." world
+    let world' = {world | log <- 100, fire <- max 4 (world.fire + 1), wood <- world.wood - 1}
+    in if world.fire > 0 then logFire <| reset (CoolFire,fireCoolDelay) world'
+       else log "not enough wood." world
 
 gatherWood world =
     {world | gather <- 100, wood <- world.wood + 10}
@@ -116,6 +117,11 @@ updateQueue world dt =
         ripeActions = List.map (actionFor << fst) ripe
         world' = (composeMany ripeActions) {world | queue <- []}
     in {world' | queue <- List.concat [world'.queue,waiting]}
+
+reset (trigger,delay) world =
+    let thatTrigger (action,_) = action /= trigger
+        queue' = (trigger,delay) :: List.filter thatTrigger world.queue
+    in {world | queue <- queue'}
 
 actionFor trigger =
     case trigger of
