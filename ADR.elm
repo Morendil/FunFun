@@ -87,7 +87,7 @@ firstFire world =
     in queueMany actions world''
 
 stokeFire world =
-    let world' = {world | log <- 100, fire <- max 4 (world.fire + 1), wood <- world.wood - 1}
+    let world' = {world | log <- 100, fire <- min 4 (world.fire + 1), wood <- world.wood - 1}
     in if world.fire > 0 then logFire <| reset (CoolFire,fireCoolDelay) world'
        else log "not enough wood." world
 
