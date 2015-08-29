@@ -6,6 +6,8 @@ import Time exposing (fps,minute,second)
 
 import ADR.Style exposing (..)
 
+import Html.Attributes as Attributes
+
 import Signal
 
 import String
@@ -238,7 +240,7 @@ makeButton world button =
                 Just countPct -> if countPct world > 0 then buttonStyle << disabledStyle else buttonStyle
         action = [onClick clicks.address button.action]
         content = text button.label :: extra
-    in with enabledStyle "headerButton" [div enabledAction content]
+    in with enabledStyle "headerButton" [div (Attributes.key button.label :: enabledAction) content]
 
 displayButtons world buttonList =
     let visibleButtons = List.filter (isVisible world) buttonList
