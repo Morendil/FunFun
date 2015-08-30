@@ -100,7 +100,6 @@ goRoom world =
     if world.builder >= 2 then updateBuilder {world | current <- 0}
     else {world | current <- 0}
     
-
 goOutside world =
     let world' = {world | current <- 1, seenForest <- True}
     in if world.seenForest then world' else log "the sky is grey and the wind blows relentlessly." world'
