@@ -1,7 +1,7 @@
 module ADR where
 
-import Html exposing (text, div)
-import Html.Events exposing (onClick)
+import Html exposing (text, div, node)
+import Html.Events exposing (onClick,onMouseOver,onMouseOut)
 import Time exposing (fps,minute,second)
 
 import ADR.Style exposing (..)
@@ -55,7 +55,6 @@ incomeDelay = 10 * second
 -- Update
 
 update u =
-    -- todo - bring the fire down a notch if unstoked
     case u of
         Frame  dt ->            advanceTime dt
         Action LightFire ->     lightFire
@@ -280,16 +279,19 @@ storesContainer world anti =
           [with storesStyle "stores" <|
           List.concat [[with legendStyle "legend" [text "stores"]],displayStore world "wood" .wood]]
         incomes =
-          [with tooltipStyle "incomes" [
+          [with tooltipStyle "tooltip" [
             with rowKeyStyle "row_key" [text "builder"],
             with rowValStyle "row_val" [text "+2 per 10s"],
             with rowClearStyle "clear" [],
             with rowKeyStyle "row_key" [text "total"],
             with rowValStyle "row_val" [text "+2 per 10s"],
             with rowClearStyle "clear" []]]
-    in adding storesContainerStyle "storesContainer" anti <|
-    if List.length world.locations <= 1 then [] else
-      if List.isEmpty world.incomes then stores else List.append stores incomes
+    in 
+        div [] [
+            node "style" [] [text "div.tooltip {display:none} *:hover > div.tooltip {display: block;}"],
+            adding storesContainerStyle "storesContainer" anti <|
+                  if List.length world.locations <= 1 then [] else
+                    if List.isEmpty world.incomes then stores else List.append stores incomes]
 
 displayLocations world =
     let displayLocation location =

@@ -115,8 +115,7 @@ headerStyle =
   << height 20
 
 tooltipStyle =
-  display Display.Block
-  << Padding.all 2 5 2 5
+  Padding.all 2 5 2 5
   << Border.style Style.Solid
   << Border.width 1 1 1 1
   << position Position.Absolute
