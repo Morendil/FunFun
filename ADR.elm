@@ -31,7 +31,7 @@ type alias Income = String
 start : World
 start = logFire <| logRoom newGame
 newGame =   {time = 0, entries = [],
-            wood = 0, traps = 0,
+            wood = 0, traps = -1,
             incomes = [],
             log = 100, gather = 0,
             fire = 0, room = 0, builder = 0, seenForest = False,
@@ -39,10 +39,16 @@ newGame =   {time = 0, entries = [],
             event = Nothing,
             locations = [room], queue = []}
 
-room = {title="A Dark Room", actions=[LightFire, StokeFire], click=GoRoom}
+room = {title="A Dark Room", actions=[LightFire, StokeFire, Build "trap"], click=GoRoom}
 forest = {title="A Silent Forest", actions=[GatherWood, CheckTraps], click=GoOutside}
 
 type Trigger = BuilderEnters | AdjustTemperature | CoolFire | UnlockForest | UpdateBuilder | Income
+
+stores name world =
+    case name of
+        "wood" -> world.wood
+        "trap" -> world.traps
+        _ -> -1
 
 -- Constants
 
@@ -65,15 +71,19 @@ update u =
         Action GoOutside ->     goOutside
         _ -> identity
 
+unlockStores world =
+    {world | traps <- if (world.wood >= 10) && (world.traps < 0) then 0 else world.traps}
+
 advanceTime dt world =
     let log' = if world.fire <= 0 then world.log else max 0 (world.log - dt/200)
         gather' = max 0 (world.gather - dt/200)
         world' = {world | time <- world.time + dt, log <- log', gather <- gather'}
-    in updateQueue world' dt
+        world'' = unlockStores world'
+    in updateQueue world'' dt
 
 lightFire world =
     if  | List.length world.locations == 1 -> firstFire world
-        | world.wood < 5 -> log "not enough wood to get the fire going." world
+        | stores "wood" world < 5 -> log "not enough wood to get the fire going." world
         | otherwise -> logFire {world | fire <- 3, wood <- world.wood - 5}
 
 firstFire world =
@@ -220,6 +230,7 @@ buttonFor action =
         StokeFire -> button "stoke fire" StokeFire (\world -> world.fire > 0) |> cooling (.log)
         GatherWood -> button "gather wood" GatherWood (always True) |> cooling (.gather)
         CheckTraps -> button "check traps" CheckTraps (\world -> world.traps > 0)
+        Build what -> button what (Build what) (\world -> stores what world >= 0)
 
 makeButton world button =
     let extra =
@@ -335,7 +346,7 @@ display world =
 
 -- Signals
 
-type Choice = LightFire | StokeFire | EndEvent | GoRoom | GoOutside | GatherWood | CheckTraps
+type Choice = LightFire | StokeFire | EndEvent | GoRoom | GoOutside | GatherWood | CheckTraps | Build String
 type Update = Frame Float | Action Choice
 
 clicks = Signal.mailbox LightFire
