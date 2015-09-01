@@ -25,7 +25,9 @@ type alias World = {time:Float, entries: List String, wood: Int, traps:Int,
                     log: Float, gather: Float,
                     fire: Int, room: Int, builder: Int, seenForest: Bool, current: Int, event: Maybe String,
                     locations:List Location, queue:List (Trigger, Float)}
-type alias Location = {title:String, actions:List Choice, click:Choice}
+
+type alias Area = {caption:Maybe String, actions:List Choice}
+type alias Location = {title:String, areas:List Area, click:Choice}
 type alias Income = String
 
 start : World
@@ -39,8 +41,14 @@ newGame =   {time = 0, entries = [],
             event = Nothing,
             locations = [room], queue = []}
 
-room = {title="A Dark Room", actions=[LightFire, StokeFire, Build "trap"], click=GoRoom}
-forest = {title="A Silent Forest", actions=[GatherWood, CheckTraps], click=GoOutside}
+room = {    title="A Dark Room",
+            areas=[{caption=Nothing,actions=[LightFire, StokeFire]},
+                   {caption=Just "build:",actions=[Build "trap"]}],
+            click=GoRoom}
+
+forest = {  title="A Silent Forest",
+            areas=[{caption=Nothing,actions=[GatherWood, CheckTraps]}],
+            click=GoOutside}
 
 type Trigger = BuilderEnters | AdjustTemperature | CoolFire | UnlockForest | UpdateBuilder | Income
 
@@ -303,9 +311,14 @@ storesContainer world anti =
                   if List.length world.locations <= 1 then [] else
                     if List.isEmpty world.incomes then stores else List.append stores incomes]
 
+displayArea world area =
+    let buttons = displayButtons world (List.map buttonFor area.actions)
+    in if | area.caption == Nothing || List.isEmpty buttons -> buttons
+          | otherwise -> let (Just theCaption) = area.caption in text theCaption :: buttons
+
 displayLocations world =
     let displayLocation location =
-        with locationStyle "locationPanel" <| displayButtons world (List.map buttonFor location.actions)
+        with locationStyle "locationPanel" <| List.concatMap (displayArea world) location.areas
     in List.map displayLocation world.locations
 
 content world =
