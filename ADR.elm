@@ -20,7 +20,7 @@ composeMany = List.foldr (<<) identity
 
 -- Model
 
-type alias World = {time:Float, entries: List String, wood: Int, traps:Int,
+type alias World = {time:Float, entries: List String, wood: Int, traps:Int, cart: Int,
                     incomes: List Income,
                     log: Float, gather: Float,
                     fire: Int, room: Int, builder: Int, seenForest: Bool, current: Int, event: Maybe String,
@@ -33,7 +33,7 @@ type alias Income = String
 start : World
 start = logFire <| logRoom newGame
 newGame =   {time = 0, entries = [],
-            wood = 0, traps = -1,
+            wood = 0, traps = -1, cart = -1,
             incomes = [],
             log = 100, gather = 0,
             fire = 0, room = 0, builder = 0, seenForest = False,
@@ -43,7 +43,7 @@ newGame =   {time = 0, entries = [],
 
 room = {    title="A Dark Room",
             areas=[{caption=Nothing,actions=[LightFire, StokeFire]},
-                   {caption=Just "build:",actions=[Build "trap"]}],
+                   {caption=Just "build:",actions=[Build "trap",Build "cart"]}],
             click=GoRoom}
 
 forest = {  title="A Silent Forest",
@@ -56,6 +56,7 @@ stores name world =
     case name of
         "wood" -> world.wood
         "trap" -> world.traps
+        "cart" -> world.cart
         _ -> -1
 
 -- Constants
@@ -77,10 +78,17 @@ update u =
         Action EndEvent ->      endEvent
         Action GoRoom ->        goRoom
         Action GoOutside ->     goOutside
+        Action (Build what) ->  build what
         _ -> identity
 
+build what world =
+    case what of
+        "trap" -> {world | traps <- world.traps+1, wood <- world.wood - 10}
+        "cart" -> {world | cart <- world.cart+1, wood <- world.wood - 30}
+
 unlockStores world =
-    {world | traps <- if (world.wood >= 10) && (world.traps < 0) then 0 else world.traps}
+    {world | traps <- if (world.wood >= 10) && (world.traps < 0) then 0 else world.traps,
+             cart <- if (world.wood >= 15) && (world.cart < 0) then 0 else world.cart}
 
 advanceTime dt world =
     let log' = if world.fire <= 0 then world.log else max 0 (world.log - dt/200)
@@ -238,7 +246,12 @@ buttonFor action =
         StokeFire -> button "stoke fire" StokeFire (\world -> world.fire > 0) |> cooling (.log)
         GatherWood -> button "gather wood" GatherWood (always True) |> cooling (.gather)
         CheckTraps -> button "check traps" CheckTraps (\world -> world.traps > 0)
-        Build what -> button what (Build what) (\world -> stores what world >= 0)
+        Build what -> button what (Build what) (\world -> stores what world >= 0) |> coolingFor what
+
+coolingFor what =
+    case what of
+        "cart" -> cooling (\world -> if world.cart > 0 then 0.001 else 0)
+        _ -> identity
 
 makeButton world button =
     let extra =
