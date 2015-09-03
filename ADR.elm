@@ -82,9 +82,11 @@ update u =
         _ -> identity
 
 build what world =
-    case what of
-        "trap" -> {world | traps <- world.traps+1, wood <- world.wood - 10}
-        "cart" -> {world | cart <- world.cart+1, wood <- world.wood - 30}
+    let checkBalance amount world' =
+          if world.wood >= amount then world' else log "not enough wood." world
+    in case what of
+        "trap" -> checkBalance 10 {world | traps <- world.traps+1, wood <- world.wood - 10}
+        "cart" -> checkBalance 30 {world | cart <- world.cart+1, wood <- world.wood - 30}
 
 unlockStores world =
     {world | traps <- if (world.wood >= 10) && (world.traps < 0) then 0 else world.traps,
