@@ -59,6 +59,14 @@ stores name world =
         "cart" -> world.cart
         _ -> -1
 
+addStores name amount world =
+    case name of
+        "wood" -> {world | wood <- world.wood + amount}
+        "trap" -> {world | wood <- world.traps + amount}
+        "cart" -> {world | wood <- world.cart + amount}
+        _ -> world
+
+
 -- Constants
 
 fireCoolDelay = 5 * minute
@@ -85,8 +93,8 @@ build what world =
     let checkBalance amount world' =
           if world.wood >= amount then world' else log "not enough wood." world
     in case what of
-        "trap" -> checkBalance 10 {world | traps <- world.traps+1, wood <- world.wood - 10}
-        "cart" -> checkBalance 30 {world | cart <- world.cart+1, wood <- world.wood - 30}
+        "trap" -> addStores "trap" 1 world |> addStores "wood" -10 |> checkBalance 10
+        "cart" -> addStores "cart" 1 world |> addStores "wood" -30 |> checkBalance 30
 
 unlockStores world =
     {world | traps <- if (world.wood >= 10) && (world.traps < 0) then 0 else world.traps,
