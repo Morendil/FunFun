@@ -91,14 +91,14 @@ update u =
 
 build what world =
     let checkBalance amount world' =
-          if world.wood >= amount then world' else log "not enough wood." world
+          if stores "wood" world >= amount then world' else log "not enough wood." world
     in case what of
         "trap" -> addStores "trap" 1 world |> addStores "wood" -10 |> checkBalance 10
         "cart" -> addStores "cart" 1 world |> addStores "wood" -30 |> checkBalance 30
 
 unlockStores world =
-    {world | traps <- if (world.wood >= 10) && (world.traps < 0) then 0 else world.traps,
-             cart <- if (world.wood >= 15) && (world.cart < 0) then 0 else world.cart}
+    {world | traps <- if (stores "wood" world >= 10) && (world.traps < 0) then 0 else world.traps,
+             cart <- if (stores "wood" world >= 15) && (world.cart < 0) then 0 else world.cart}
 
 advanceTime dt world =
     let log' = if world.fire <= 0 then world.log else max 0 (world.log - dt/200)
@@ -110,7 +110,7 @@ advanceTime dt world =
 lightFire world =
     if  | List.length world.locations == 1 -> firstFire world
         | stores "wood" world < 5 -> log "not enough wood to get the fire going." world
-        | otherwise -> logFire {world | fire <- 3, wood <- world.wood - 5}
+        | otherwise -> addStores "wood" -5 <| logFire {world | fire <- 3}
 
 firstFire world =
     let spill = "the light from the fire spills from the windows, out into the dark."
@@ -122,12 +122,12 @@ firstFire world =
     in queueMany actions world''
 
 stokeFire world =
-    let world' = {world | log <- 100, fire <- min 4 (world.fire + 1), wood <- world.wood - 1}
+    let world' = addStores "wood" -1 {world | log <- 100, fire <- min 4 (world.fire + 1)}
     in if world.fire > 0 then logFire <| reset (CoolFire,fireCoolDelay) world'
        else log "not enough wood." world
 
 gatherWood world =
-    {world | gather <- 100, wood <- world.wood + 10}
+    addStores "wood" 10 {world | gather <- 100}
 
 endEvent world =
     {world | event <- Nothing}
@@ -218,9 +218,7 @@ distributeIncome world =
     in queue (Income,incomeDelay) world'
 
 incomeFor name world =
-    case name of
-        "wood" -> {world | wood <- world.wood + 2}
-        _ -> world
+    addStores name 2 world
 
 -- Display
 
@@ -310,15 +308,15 @@ roomTitle selected index location =
 roomTitles world =
     List.indexedMap (roomTitle world.current) world.locations
 
-displayStore world title getter =
+displayStore world title =
     [with rowKeyStyle "row_key" [text title],
-     with rowValStyle "row_val" [text <| toString <| getter world],
+     with rowValStyle "row_val" [text <| toString <| stores title world],
      with rowClearStyle "clear" []]
 
 storesContainer world anti =
     let stores =
           [with storesStyle "stores" <|
-          List.concat [[with legendStyle "legend" [text "stores"]],displayStore world "wood" .wood]]
+          List.concat [[with legendStyle "legend" [text "stores"]],displayStore world "wood"]]
         incomes =
           [with tooltipStyle "tooltip" [
             with rowKeyStyle "row_key" [text "builder"],
