@@ -60,12 +60,15 @@ stores name world =
         _ -> -1
 
 addStores name amount world =
-    case name of
-        "wood" -> {world | wood <- world.wood + amount}
-        "trap" -> {world | wood <- world.traps + amount}
-        "cart" -> {world | wood <- world.cart + amount}
-        _ -> world
+    let current = stores name world
+    in setStores name (current+amount) world
 
+setStores name amount world =
+    case name of
+        "wood" -> {world | wood <- amount}
+        "trap" -> {world | traps <- amount}
+        "cart" -> {world | cart <- amount}
+        _ -> world
 
 -- Constants
 
@@ -97,8 +100,9 @@ build what world =
         "cart" -> addStores "cart" 1 world |> addStores "wood" -30 |> checkBalance 30
 
 unlockStores world =
-    {world | traps <- if (stores "wood" world >= 10) && (world.traps < 0) then 0 else world.traps,
-             cart <- if (stores "wood" world >= 15) && (world.cart < 0) then 0 else world.cart}
+    let unlock derived base amount w =
+          if (stores base w >= amount) && (stores derived w < 0) then setStores derived 0 w else w
+    in unlock "traps" "wood" 10 <| unlock "cart" "wood" 15 world
 
 advanceTime dt world =
     let log' = if world.fire <= 0 then world.log else max 0 (world.log - dt/200)
