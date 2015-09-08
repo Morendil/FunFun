@@ -102,7 +102,7 @@ build what world =
 unlockStores world =
     let unlock derived base amount w =
           if (stores base w >= amount) && (stores derived w < 0) then setStores derived 0 w else w
-    in unlock "traps" "wood" 10 <| unlock "cart" "wood" 15 world
+    in unlock "trap" "wood" 10 <| unlock "cart" "wood" 15 world
 
 advanceTime dt world =
     let log' = if world.fire <= 0 then world.log else max 0 (world.log - dt/200)
