@@ -108,7 +108,7 @@ advanceTime dt world =
     let log' = if world.fire <= 0 then world.log else max 0 (world.log - dt/200)
         gather' = max 0 (world.gather - dt/200)
         world' = {world | time <- world.time + dt, log <- log', gather <- gather'}
-        world'' = unlockStores world'
+        world'' = if world.builder >= 3 then unlockStores world' else world'
     in updateQueue world'' dt
 
 lightFire world =
