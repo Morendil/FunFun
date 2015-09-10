@@ -131,7 +131,8 @@ stokeFire world =
        else log "not enough wood." world
 
 gatherWood world =
-    addStores "wood" 10 {world | gather <- 100}
+    let sticks = if world.cart == 0 then 10 else 50
+    in addStores "wood" sticks {world | gather <- 100}
 
 endEvent world =
     {world | event <- Nothing}
