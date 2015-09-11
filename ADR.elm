@@ -86,6 +86,7 @@ update u =
         Action LightFire ->     lightFire
         Action StokeFire ->     stokeFire
         Action GatherWood ->    gatherWood
+        Action CheckTraps ->    checkTraps
         Action EndEvent ->      endEvent
         Action GoRoom ->        goRoom
         Action GoOutside ->     goOutside
@@ -133,6 +134,9 @@ stokeFire world =
 gatherWood world =
     let sticks = if world.cart > 0 then 50 else 10
     in addStores "wood" sticks {world | gather <- 100}
+
+checkTraps world =
+  log "the traps contain bits of meat." <| addStores "meat" 1 world
 
 endEvent world =
     {world | event <- Nothing}
