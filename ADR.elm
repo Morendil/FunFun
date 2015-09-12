@@ -3,6 +3,7 @@ module ADR where
 import Html exposing (text, div, node)
 import Html.Events exposing (onClick,onMouseOver,onMouseOut)
 import Time exposing (fps,minute,second)
+import Maybe exposing (withDefault)
 
 import ADR.Style exposing (..)
 
@@ -10,6 +11,7 @@ import Html.Attributes as Attributes
 
 import Signal
 
+import Dict
 import String
 import Array
 import Debug
@@ -20,7 +22,8 @@ composeMany = List.foldr (<<) identity
 
 -- Model
 
-type alias World = {time:Float, entries: List String, wood: Int, traps:Int, cart: Int,
+type alias World = {time:Float, entries: List String,
+                    stores: Dict.Dict String Int,
                     incomes: List Income,
                     log: Float, gather: Float,
                     fire: Int, room: Int, builder: Int, seenForest: Bool, current: Int, event: Maybe String,
@@ -33,7 +36,7 @@ type alias Income = String
 start : World
 start = logFire <| logRoom newGame
 newGame =   {time = 0, entries = [],
-            wood = 0, traps = -1, cart = -1,
+            stores = Dict.empty,
             incomes = [],
             log = 100, gather = 0,
             fire = 0, room = 0, builder = 0, seenForest = False,
@@ -53,22 +56,14 @@ forest = {  title="A Silent Forest",
 type Trigger = BuilderEnters | AdjustTemperature | CoolFire | UnlockForest | UpdateBuilder | Income
 
 stores name world =
-    case name of
-        "wood" -> world.wood
-        "trap" -> world.traps
-        "cart" -> world.cart
-        _ -> -1
+    Dict.get name world.stores |> withDefault -1
 
 addStores name amount world =
     let current = stores name world
     in setStores name (current+amount) world
 
 setStores name amount world =
-    case name of
-        "wood" -> {world | wood <- amount}
-        "trap" -> {world | traps <- amount}
-        "cart" -> {world | cart <- amount}
-        _ -> world
+    {world | stores <- Dict.insert name amount world.stores}
 
 -- Constants
 
@@ -132,7 +127,7 @@ stokeFire world =
        else log "not enough wood." world
 
 gatherWood world =
-    let sticks = if world.cart > 0 then 50 else 10
+    let sticks = if stores "cart" world > 0 then 50 else 10
     in addStores "wood" sticks {world | gather <- 100}
 
 checkTraps world =
@@ -219,7 +214,7 @@ unlockForest =
 
 addForest world =
     let locations' = List.append world.locations [forest]
-    in {world | locations <- locations', wood <- 4}
+    in setStores "wood" 4 {world | locations <- locations'}
 
 distributeIncome world =
     let applyIncomes = composeMany <| List.map incomeFor world.incomes
@@ -262,12 +257,12 @@ buttonFor action =
         LightFire -> button "light fire" LightFire (\world -> world.fire == 0)
         StokeFire -> button "stoke fire" StokeFire (\world -> world.fire > 0) |> cooling (.log)
         GatherWood -> button "gather wood" GatherWood (always True) |> cooling (.gather)
-        CheckTraps -> button "check traps" CheckTraps (\world -> world.traps > 0)
+        CheckTraps -> button "check traps" CheckTraps (\world -> stores "trap" world > 0)
         Build what -> button what (Build what) (\world -> stores what world >= 0) |> coolingFor what
 
 coolingFor what =
     case what of
-        "cart" -> cooling (\world -> if world.cart > 0 then 0.001 else 0)
+        "cart" -> cooling (\world -> if stores "cart" world > 0 then 0.001 else 0)
         _ -> identity
 
 makeButton world button =
