@@ -130,8 +130,9 @@ gatherWood world =
     let sticks = if stores "cart" world > 0 then 50 else 10
     in addStores "wood" sticks {world | gather <- 100}
 
-checkTraps world =
-  log "the traps contain bits of meat." <| addStores "meat" 1 world
+checkTraps =
+  log "the traps contain bits of meat."
+  <<  addStores "meat" 1
 
 endEvent world =
     {world | event <- Nothing}
