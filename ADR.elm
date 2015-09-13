@@ -60,7 +60,8 @@ stores name world =
 
 addStores name amount world =
     let current = stores name world
-    in setStores name (current+amount) world
+        new = if current < 0 then amount else current+amount
+    in setStores name new world
 
 setStores name amount world =
     {world | stores <- Dict.insert name amount world.stores}
@@ -93,7 +94,7 @@ build what world =
           if stores "wood" world >= amount then world' else log "not enough wood." world
     in case what of
         "trap" -> addStores "trap" 1 world |> addStores "wood" -10 |> checkBalance 10
-        "cart" -> addStores "cart" 1 world |> addStores "wood" -30 |> checkBalance 30
+        "cart" -> setStores "cart" 1 world |> addStores "wood" -30 |> checkBalance 30
 
 unlockStores world =
     let unlock derived base amount w =
