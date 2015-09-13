@@ -314,6 +314,7 @@ roomTitles world =
     List.indexedMap (roomTitle world.current) world.locations
 
 displayStore world title =
+    if stores title world < 0 then [] else
     [with rowKeyStyle "row_key" [text title],
      with rowValStyle "row_val" [text <| toString <| stores title world],
      with rowClearStyle "clear" []]
@@ -321,7 +322,7 @@ displayStore world title =
 storesContainer world anti =
     let stores =
           [with storesStyle "stores" <|
-          List.concat [[with legendStyle "legend" [text "stores"]],displayStore world "wood"]]
+          List.concat [[with legendStyle "legend" [text "stores"]],displayStore world "wood",displayStore world "meat"]]
         incomes =
           [with tooltipStyle "tooltip" [
             with rowKeyStyle "row_key" [text "builder"],
