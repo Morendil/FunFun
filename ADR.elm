@@ -320,18 +320,23 @@ displayStore world title =
      with rowValStyle "row_val" [text <| toString <| stores title world],
      with rowClearStyle "clear" []]
 
+displayKeyAndValue key value =
+    [with rowKeyStyle "row_key" [text "builder"],
+     with rowValStyle "row_val" [text "+2 per 10s"],
+     with rowClearStyle "clear" []]
+
+
 storesContainer world anti =
     let stores =
           [with storesStyle "stores" <|
-          List.concat [[with legendStyle "legend" [text "stores"]],displayStore world "wood",displayStore world "meat"]]
+          List.concat [[with legendStyle "legend" [text "stores"]],
+            displayStore world "wood",
+            displayStore world "meat"]]
         incomes =
-          [with tooltipStyle "tooltip" [
-            with rowKeyStyle "row_key" [text "builder"],
-            with rowValStyle "row_val" [text "+2 per 10s"],
-            with rowClearStyle "clear" [],
-            with rowKeyStyle "row_key" [text "total"],
-            with rowValStyle "row_val" [text "+2 per 10s"],
-            with rowClearStyle "clear" []]]
+          [with tooltipStyle "tooltip" <|
+            List.concat [
+                displayKeyAndValue "builder" "+2 per 10s",
+                displayKeyAndValue "total"   "+2 per 10s"]]
     in 
         div [] [
             node "style" [] [text "div.tooltip {display:none} *:hover > div.tooltip {display: block;}"],
