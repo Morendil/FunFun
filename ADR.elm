@@ -315,16 +315,12 @@ roomTitles world =
     List.indexedMap (roomTitle world.current) world.locations
 
 displayStore world title =
-    if stores title world < 0 then [] else
-    [with rowKeyStyle "row_key" [text title],
-     with rowValStyle "row_val" [text <| toString <| stores title world],
-     with rowClearStyle "clear" []]
+    if stores title world < 0 then [] else displayKeyAndValue title (stores title world)
 
 displayKeyAndValue key value =
-    [with rowKeyStyle "row_key" [text "builder"],
-     with rowValStyle "row_val" [text "+2 per 10s"],
+    [with rowKeyStyle "row_key" [text key],
+     with rowValStyle "row_val" [text <| toString value],
      with rowClearStyle "clear" []]
-
 
 storesContainer world anti =
     let stores =
