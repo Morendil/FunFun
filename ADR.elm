@@ -340,6 +340,13 @@ storesContainer world anti =
                   if List.length world.locations <= 1 then [] else
                     if List.isEmpty world.incomes then stores else List.append stores incomes]
 
+villageContainer world =
+    let stores =
+          [with storesStyle "village" <|
+          List.concat [[with legendStyle "legend" [text "village"]],
+            displayStore world "trap"]]
+    in adding storesContainerStyle "storesContainer" [("top","30px"),("right","0px")] stores
+
 displayArea world area =
     let buttons = displayButtons world (List.map buttonFor area.actions)
     in if | area.caption == Nothing || List.isEmpty buttons -> buttons
@@ -360,7 +367,9 @@ content world =
                 with headerStyle "header"
                     <| roomTitles world,
                 adding locationSliderStyle "locationSlider" style <|
-                    (storesContainer world anti) :: displayLocations world
+                    if world.current == 1 then
+                         (villageContainer world) :: (storesContainer world anti) :: displayLocations world
+                    else (storesContainer world anti) :: displayLocations world
             ]
         ]
     ]
