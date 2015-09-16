@@ -322,7 +322,7 @@ displayKeyAndValue key value =
      with rowValStyle "row_val" [text <| toString value],
      with rowClearStyle "clear" []]
 
-storesContainer world anti =
+storesContainer world =
     let stores =
           [with storesStyle "stores" <|
           List.concat [[with legendStyle "legend" [text "stores"]],
@@ -336,7 +336,7 @@ storesContainer world anti =
     in 
         div [] [
             node "style" [] [text "div.tooltip {display:none} *:hover > div.tooltip {display: block;}"],
-            adding storesContainerStyle "storesContainer" anti <|
+            with storesContainerStyle "storesContainer" <|
                   if List.length world.locations <= 1 then [] else
                     if List.isEmpty world.incomes then stores else List.append stores incomes]
 
@@ -345,7 +345,7 @@ villageContainer world =
           [with storesStyle "village" <|
           List.concat [[with legendStyle "legend" [text "village"]],
             displayStore world "trap"]]
-    in adding storesContainerStyle "storesContainer" [("top","30px"),("right","0px")] stores
+    in with storesContainerStyle "villageStores" stores
 
 displayArea world area =
     let buttons = displayButtons world (List.map buttonFor area.actions)
@@ -360,16 +360,14 @@ displayLocations world =
 content world =
     let offset = world.current * -700
         style = [("left",String.concat [toString offset,"px"])]
-        anti = [("right",String.concat [toString <| offset+700,"px"])]
     in with contentStyle "content" [
         with outerSliderStyle "outerSlider" [
             with mainStyle "main" [
                 with headerStyle "header"
                     <| roomTitles world,
-                adding locationSliderStyle "locationSlider" style <|
-                    if world.current == 1 then
-                         (villageContainer world) :: (storesContainer world anti) :: displayLocations world
-                    else (storesContainer world anti) :: displayLocations world
+                adding locationSliderStyle "locationSlider" style <| displayLocations world,
+                if world.current == 1 then villageContainer world else text "",
+                storesContainer world
             ]
         ]
     ]

@@ -151,7 +151,9 @@ storesStyle =
   << width 200
 
 storesContainerStyle =
-  position Position.Absolute
+  position Position.Relative
+  << right -450
+  << Padding.bottom 20
 
 mainStyle = 
   position Position.Relative
