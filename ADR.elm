@@ -25,7 +25,7 @@ composeMany = List.foldr (<<) identity
 type alias World = {time:Float, entries: List String,
                     stores: Dict.Dict String Int,
                     incomes: List Income,
-                    log: Float, gather: Float,
+                    log: Float, gather: Float, check: Float,
                     fire: Int, room: Int, builder: Int, seenForest: Bool, current: Int, event: Maybe String,
                     locations:List Location, queue:List (Trigger, Float)}
 
@@ -38,7 +38,7 @@ start = logFire <| logRoom newGame
 newGame =   {time = 0, entries = [],
             stores = Dict.empty,
             incomes = [],
-            log = 100, gather = 0,
+            log = 100, gather = 0, check = 0,
             fire = 0, room = 0, builder = 0, seenForest = False,
             current = 0,
             event = Nothing,
@@ -104,7 +104,8 @@ unlockStores world =
 advanceTime dt world =
     let log' = if world.fire <= 0 then world.log else max 0 (world.log - dt/200)
         gather' = max 0 (world.gather - dt/200)
-        world' = {world | time <- world.time + dt, log <- log', gather <- gather'}
+        check' = max 0 (world.check - dt/100)
+        world' = {world | time <- world.time + dt, log <- log', gather <- gather', check <- check'}
         world'' = if world.builder >= 3 then unlockStores world' else world'
     in updateQueue world'' dt
 
@@ -131,9 +132,10 @@ gatherWood world =
     let sticks = if stores "cart" world > 0 then 50 else 10
     in addStores "wood" sticks {world | gather <- 100}
 
-checkTraps =
-  log "the traps contain bits of meat."
-  <<  addStores "meat" 1
+checkTraps world =
+  (log "the traps contain bits of meat."
+  << addStores "meat" 1)
+  {world | check <- 100}
 
 endEvent world =
     {world | event <- Nothing}
@@ -259,7 +261,7 @@ buttonFor action =
         LightFire -> button "light fire" LightFire (\world -> world.fire == 0)
         StokeFire -> button "stoke fire" StokeFire (\world -> world.fire > 0) |> cooling (.log)
         GatherWood -> button "gather wood" GatherWood (always True) |> cooling (.gather)
-        CheckTraps -> button "check traps" CheckTraps (\world -> stores "trap" world > 0)
+        CheckTraps -> button "check traps" CheckTraps (\world -> stores "trap" world > 0) |> cooling (.check)
         Build what -> button what (Build what) (\world -> stores what world >= 0) |> coolingFor what
 
 coolingFor what =
