@@ -259,13 +259,16 @@ log entry world =
 buttonFor action =
     case action of
         LightFire -> button "light fire" LightFire (\world -> world.fire == 0)
-        StokeFire -> button "stoke fire" StokeFire (\world -> world.fire > 0) |> cooling (.log)
-        GatherWood -> button "gather wood" GatherWood (always True) |> cooling (.gather)
-        CheckTraps -> button "check traps" CheckTraps (\world -> stores "trap" world > 0) |> cooling (.check)
+        StokeFire -> button "stoke fire" StokeFire (\world -> world.fire > 0) |> coolingFor "log"
+        GatherWood -> button "gather wood" GatherWood (always True) |> coolingFor "gather"
+        CheckTraps -> button "check traps" CheckTraps (\world -> stores "trap" world > 0) |> coolingFor "check"
         Build what -> button what (Build what) (\world -> stores what world >= 0) |> coolingFor what
 
 coolingFor what =
     case what of
+        "log" -> cooling (\world -> world.log)
+        "gather" -> cooling (\world -> world.gather)
+        "check" -> cooling (\world -> world.check)
         "cart" -> cooling (\world -> if stores "cart" world > 0 then 0.001 else 0)
         _ -> identity
 
