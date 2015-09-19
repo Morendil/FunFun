@@ -101,11 +101,16 @@ unlockStores world =
           if (stores base w >= amount) && (stores derived w < 0) then setStores derived 0 w else w
     in unlock "trap" "wood" 10 <| unlock "cart" "wood" 15 world
 
+step cooler speed dt world =
+    case cooler of
+        "log" -> {world | log <- max 0 (world.log - dt/speed)}
+        "gather" -> {world | gather <- max 0 (world.gather - dt/speed)}
+        "check" -> {world | check <- max 0 (world.check - dt/speed)}
+        _ -> world
+
 advanceTime dt world =
-    let log' = if world.fire <= 0 then world.log else max 0 (world.log - dt/200)
-        gather' = max 0 (world.gather - dt/200)
-        check' = max 0 (world.check - dt/100)
-        world' = {world | time <- world.time + dt, log <- log', gather <- gather', check <- check'}
+    let cooldowns = step "log" 200 dt << step "gather" 200 dt << step "check" 100 dt
+        world' = cooldowns {world | time <- world.time + dt}
         world'' = if world.builder >= 3 then unlockStores world' else world'
     in updateQueue world'' dt
 
