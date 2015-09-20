@@ -24,8 +24,8 @@ composeMany = List.foldr (<<) identity
 
 type alias World = {time:Float, entries: List String,
                     stores: Dict.Dict String Int,
+                    coolers: Dict.Dict String Float,
                     incomes: List Income,
-                    log: Float, gather: Float, check: Float,
                     fire: Int, room: Int, builder: Int, seenForest: Bool, current: Int, event: Maybe String,
                     locations:List Location, queue:List (Trigger, Float)}
 
@@ -37,8 +37,8 @@ start : World
 start = logFire <| logRoom newGame
 newGame =   {time = 0, entries = [],
             stores = Dict.empty,
+            coolers = Dict.insert "log" 100 Dict.empty,
             incomes = [],
-            log = 100, gather = 0, check = 0,
             fire = 0, room = 0, builder = 0, seenForest = False,
             current = 0,
             event = Nothing,
@@ -102,11 +102,9 @@ unlockStores world =
     in unlock "trap" "wood" 10 <| unlock "cart" "wood" 15 world
 
 step cooler speed dt world =
-    case cooler of
-        "log" -> {world | log <- max 0 (world.log - dt/speed)}
-        "gather" -> {world | gather <- max 0 (world.gather - dt/speed)}
-        "check" -> {world | check <- max 0 (world.check - dt/speed)}
-        _ -> world
+    let current = Dict.get cooler world.coolers |> withDefault 0
+        coolers' = Dict.insert cooler (max 0 (current - dt/speed)) world.coolers
+    in {world | coolers <- coolers'}
 
 advanceTime dt world =
     let cooldowns = step "log" 200 dt << step "gather" 200 dt << step "check" 100 dt
@@ -129,18 +127,18 @@ firstFire world =
     in queueMany actions world''
 
 stokeFire world =
-    let world' = addStores "wood" -1 {world | log <- 100, fire <- min 4 (world.fire + 1)}
+    let world' = heat "log" <| addStores "wood" -1 {world | fire <- min 4 (world.fire + 1)}
     in if world.fire > 0 then logFire <| reset (CoolFire,fireCoolDelay) world'
        else log "not enough wood." world
 
 gatherWood world =
     let sticks = if stores "cart" world > 0 then 50 else 10
-    in addStores "wood" sticks {world | gather <- 100}
+    in (addStores "wood" sticks << heat "gather") world
 
-checkTraps world =
-  (log "the traps contain bits of meat."
-  << addStores "meat" 1)
-  {world | check <- 100}
+checkTraps =
+  log "the traps contain bits of meat."
+  << addStores "meat" 1
+  << heat "check"
 
 endEvent world =
     {world | event <- Nothing}
@@ -269,13 +267,13 @@ buttonFor action =
         CheckTraps -> button "check traps" CheckTraps (\world -> stores "trap" world > 0) |> coolingFor "check"
         Build what -> button what (Build what) (\world -> stores what world >= 0) |> coolingFor what
 
+heat what world =
+    {world | coolers <- Dict.insert what 100 world.coolers}
+
 coolingFor what =
     case what of
-        "log" -> cooling (\world -> world.log)
-        "gather" -> cooling (\world -> world.gather)
-        "check" -> cooling (\world -> world.check)
         "cart" -> cooling (\world -> if stores "cart" world > 0 then 0.001 else 0)
-        _ -> identity
+        _ -> cooling (\world -> Dict.get what world.coolers |> withDefault 0)
 
 makeButton world button =
     let extra =
