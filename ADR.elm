@@ -133,7 +133,8 @@ stokeFire world =
 
 gatherWood world =
     let sticks = if stores "cart" world > 0 then 50 else 10
-    in (addStores "wood" sticks << heat "gather") world
+        update = addStores "wood" sticks << heat "gather"
+    in update world
 
 checkTraps =
   log "the traps contain bits of meat."
