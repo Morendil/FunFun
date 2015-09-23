@@ -25,15 +25,18 @@ update u world =
 
 -- Display
 
+halfCircle radius =
+    let full = circle radius
+        total = List.length full
+        oneHalf = List.drop 1 <| List.take (total//2) full
+    in polygon oneHalf
+
 display world =
     let radius = toFloat world.height/3.4
         gray = (rgb 204 204 204)
     in collage world.width world.height [
-        filled black <| circle radius,
-        filled gray <| circle (radius-14),
-        filled white <| rect (2+radius*2) 14,
-        move (0,14) <| filled black <| rect (radius*2-2) 14,
-        move (0,-14) <| filled black <| rect (radius*2-2) 14
+        filled gray <| halfCircle radius,
+        outlined {defaultLine | width <- 14, cap <- Padded} <| halfCircle radius
     ]
 
 -- Signals
