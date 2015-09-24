@@ -31,12 +31,16 @@ halfCircle radius =
         oneHalf = List.drop 1 <| List.take (total//2) full
     in polygon oneHalf
 
+north radius =
+    group [filled gray <| halfCircle radius,
+           outlined {defaultLine | width <- 14, cap <- Padded} <| halfCircle radius]
+
 display world =
     let radius = toFloat world.height/3.4
         gray = (rgb 204 204 204)
     in collage world.width world.height [
-        filled gray <| halfCircle radius,
-        outlined {defaultLine | width <- 14, cap <- Padded} <| halfCircle radius
+        move (0,-18) <| north radius,
+        move (0,18) <| rotate (degrees 180) <| north radius
     ]
 
 -- Signals
