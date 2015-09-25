@@ -39,6 +39,7 @@ display world =
     let radius = toFloat world.height/3.4
         gray = (rgb 204 204 204)
     in collage world.width world.height [
+        filled black <| rect (toFloat world.width) (toFloat world.height),
         move (0,-18) <| north radius,
         move (0,18) <| rotate (degrees 180) <| north radius
     ]
