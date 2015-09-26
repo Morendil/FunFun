@@ -14,13 +14,14 @@ import Time exposing (fps)
 
 start u =
     case u of
-        Viewport (w,h) -> {width=w,height=h}
+        Viewport (w,h) -> {width=w,height=h,time=0}
 
 -- Update
 
 update u world =
   case u of
     Viewport (w,h) -> {world | width <- w, height <- h}
+    Frame dt -> {world | time <- world.time + dt}
     _ -> world
 
 -- Display
