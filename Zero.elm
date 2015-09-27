@@ -2,6 +2,7 @@ module Zero where
 
 import Graphics.Collage exposing (..)
 import Color exposing (..)
+import Easing exposing (..)
 
 import Signal
 import Window
@@ -39,8 +40,9 @@ north radius =
 display world =
     let radius = toFloat world.height/3.4
         gray = (rgb 204 204 204)
+        color = ease Easing.linear Easing.color white black 5000 world.time
     in collage world.width world.height [
-        filled black <| rect (toFloat world.width) (toFloat world.height),
+        filled color <| rect (toFloat world.width) (toFloat world.height),
         move (0,-18) <| north radius,
         move (0,18) <| rotate (degrees 180) <| north radius
     ]
