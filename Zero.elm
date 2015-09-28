@@ -33,18 +33,21 @@ halfCircle radius =
         oneHalf = List.drop 1 <| List.take (total//2) full
     in polygon oneHalf
 
-north radius =
-    group [filled gray <| halfCircle radius,
-           outlined {defaultLine | width <- 14, cap <- Padded} <| halfCircle radius]
+north outerColor innerColor radius =
+    group [filled innerColor <| halfCircle radius,
+           outlined {defaultLine | width <- 14, cap <- Padded, color <- outerColor} <| halfCircle radius]
 
 display world =
     let radius = toFloat world.height/3.4
+        gap = radius / 14
         gray = (rgb 204 204 204)
         color = ease Easing.linear Easing.color white black 5000 world.time
+        line = ease Easing.linear Easing.color black white 5000 world.time
+        fill = ease Easing.linear Easing.color gray black 5000 world.time
     in collage world.width world.height [
         filled color <| rect (toFloat world.width) (toFloat world.height),
-        move (0,-18) <| north radius,
-        move (0,18) <| rotate (degrees 180) <| north radius
+        move (0,-gap) <| north line fill radius,
+        move (0,gap) <| rotate (degrees 180) <| north line fill radius
     ]
 
 -- Signals
