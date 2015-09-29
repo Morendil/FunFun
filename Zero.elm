@@ -37,6 +37,11 @@ north outerColor innerColor radius =
     group [filled innerColor <| halfCircle radius,
            outlined {defaultLine | width <- 14, cap <- Padded, color <- outerColor} <| halfCircle radius]
 
+star radius =
+    let pointy = List.map (\(x,y) -> (x,y/2)) <| ngon 3 radius
+        rotated part n = rotate (degrees (n*90)) <| filled white part
+    in group <| (filled white <| square 4) :: List.map (rotated pointy) [0..3]
+
 display world =
     let radius = toFloat world.height/3.4
         gap = radius / 14
@@ -47,7 +52,8 @@ display world =
     in collage world.width world.height [
         filled color <| rect (toFloat world.width) (toFloat world.height),
         move (0,-gap) <| north line fill radius,
-        move (0,gap) <| rotate (degrees 180) <| north line fill radius
+        move (0,gap) <| rotate (degrees 180) <| north line fill radius,
+        move (gap*5,-gap*5) <| star (radius/10)
     ]
 
 -- Signals
