@@ -38,9 +38,9 @@ north outerColor innerColor radius =
            outlined {defaultLine | width <- 14, cap <- Padded, color <- outerColor} <| halfCircle radius]
 
 star radius =
-    let pointy = List.map (\(x,y) -> (x,y/2)) <| ngon 3 radius
-        rotated part n = rotate (degrees (n*90)) <| filled white part
-    in group <| (filled white <| square 4) :: List.map (rotated pointy) [0..3]
+    let pointy = group [move (radius/1.5,0) <| filled white <| List.map (\(x,y) -> (x,y/2)) <| ngon 3 radius]
+        rotated part n = rotate (degrees (n*90)) <| part
+    in group <| (filled white <| square (radius/2)) :: List.map (rotated pointy) [0..3]
 
 display world =
     let radius = toFloat world.height/3.4
@@ -53,7 +53,7 @@ display world =
         filled color <| rect (toFloat world.width) (toFloat world.height),
         move (0,-gap) <| north line fill radius,
         move (0,gap) <| rotate (degrees 180) <| north line fill radius,
-        move (gap*5,-gap*5) <| star (radius/10)
+        move (gap*5,-gap*5) <| star (radius/15)
     ]
 
 -- Signals
