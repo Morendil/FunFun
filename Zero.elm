@@ -37,10 +37,11 @@ north outerColor innerColor radius =
     group [filled innerColor <| halfCircle radius,
            outlined {defaultLine | width <- 14, cap <- Padded, color <- outerColor} <| halfCircle radius]
 
-star radius =
+star time radius =
     let pointy = group [move (radius/1.5,0) <| filled white <| List.map (\(x,y) -> (x,y/2)) <| ngon 3 radius]
         rotated part n = rotate (degrees (n*90)) <| part
-    in group <| (filled white <| square (radius/2)) :: List.map (rotated pointy) [0..3]
+        sprite = group <| (filled white <| square (radius/2)) :: List.map (rotated pointy) [0..3]
+    in rotate (degrees time/10) sprite
 
 display world =
     let radius = toFloat world.height/3.4
@@ -53,7 +54,7 @@ display world =
         filled color <| rect (toFloat world.width) (toFloat world.height),
         move (0,-gap) <| north line fill radius,
         move (0,gap) <| rotate (degrees 180) <| north line fill radius,
-        move (gap*5,-gap*5) <| star (radius/15)
+        move (gap*5,-gap*5) <| star world.time (radius/15)
     ]
 
 -- Signals
