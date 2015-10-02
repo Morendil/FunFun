@@ -1,6 +1,8 @@
 module Zero where
 
 import Graphics.Collage exposing (..)
+import Graphics.Element exposing (..)
+import Graphics.Input exposing (..)
 import Color exposing (..)
 import Easing exposing (..)
 
@@ -15,7 +17,7 @@ import Time exposing (fps)
 
 start u =
     case u of
-        Viewport (w,h) -> {width=w,height=h,time=0}
+        Viewport (w,h) -> {width=w,height=h,time=0,star=False}
 
 -- Update
 
@@ -23,6 +25,7 @@ update u world =
   case u of
     Viewport (w,h) -> {world | width <- w, height <- h}
     Frame dt -> {world | time <- world.time + dt}
+    Action South -> {world | star <- True}
     _ -> world
 
 -- Display
@@ -50,20 +53,25 @@ display world =
         color = ease Easing.linear Easing.color white black 5000 world.time
         line = ease Easing.linear Easing.color black white 5000 world.time
         fill = ease Easing.linear Easing.color gray black 5000 world.time
-    in collage world.width world.height [
-        filled color <| rect (toFloat world.width) (toFloat world.height),
-        move (0,-gap) <| north line fill radius,
-        move (0,gap) <| rotate (degrees 180) <| north line fill radius,
-        move (gap*5,-gap*5) <| star world.time (radius/15)
+        place x = collage world.width world.height [x]
+        active x = clickable (Signal.message clicks.address x)
+    in layers [
+        place <| filled color <| rect (toFloat world.width) (toFloat world.height),
+        place <| move (0,-gap) <| north line fill radius,
+        active South <| place <| move (0,gap) <| rotate (degrees 180) <| north line fill radius,
+        if world.star then place <| move (gap*5,-gap*5) <| star world.time (radius/15) else empty
     ]
 
 -- Signals
 
-type Update = Frame Float | Viewport (Int,Int)
+clicks = Signal.mailbox South
+type Choice = South | North
+type Update = Frame Float | Viewport (Int,Int) | Action Choice
 
 main =
     let frames = Signal.map Frame (fps 30)
         dimensions = Signal.map Viewport (Window.dimensions)
-        signals = Signal.mergeMany [dimensions,frames]
+        actions = Signal.map Action clicks.signal
+        signals = Signal.mergeMany [dimensions,frames,actions]
         states = Signal.Extra.foldp' update start signals
     in Signal.map display states
