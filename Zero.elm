@@ -17,7 +17,9 @@ import Time exposing (fps)
 
 start u =
     case u of
-        Viewport (w,h) -> {width=w,height=h,time=0,star=False}
+        Viewport (w,h) -> {width=w,height=h,time=0,items=[Background,NorthHalf,SouthHalf]}
+
+type Item = Background | NorthHalf | SouthHalf | Star
 
 -- Update
 
@@ -25,7 +27,7 @@ update u world =
   case u of
     Viewport (w,h) -> {world | width <- w, height <- h}
     Frame dt -> {world | time <- world.time + dt}
-    Action South -> {world | star <- True}
+    Action South -> {world | items <- List.append world.items [Star]}
     _ -> world
 
 -- Display
@@ -55,12 +57,12 @@ display world =
         fill = ease Easing.linear Easing.color gray black 5000 world.time
         place x = collage world.width world.height [x]
         active x = clickable (Signal.message clicks.address x)
-    in layers [
-        place <| filled color <| rect (toFloat world.width) (toFloat world.height),
-        place <| move (0,-gap) <| north line fill radius,
-        active South <| place <| move (0,gap) <| rotate (degrees 180) <| north line fill radius,
-        if world.star then place <| move (gap*5,-gap*5) <| star world.time (radius/15) else empty
-    ]
+        draw item = case item of
+            Background -> place <| filled color <| rect (toFloat world.width) (toFloat world.height)
+            NorthHalf -> place <| move (0,-gap) <| north line fill radius
+            SouthHalf -> active South <| place <| move (0,gap) <| rotate (degrees 180) <| north line fill radius
+            Star -> place <| move (gap*5,-gap*5) <| star world.time (radius/15)
+    in layers <| List.map draw world.items
 
 -- Signals
 
