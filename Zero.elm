@@ -18,7 +18,7 @@ import Time exposing (fps)
 start u =
     case u of
         Viewport (w,h) -> {width=w,height=h,time=0,items=[
-            Background {color=Still white},
+            Background {color=Transition white black 5000},
             NorthHalf,
             SouthHalf]
         }
@@ -34,6 +34,13 @@ update u world =
     Frame dt -> {world | time <- world.time + dt}
     Action South -> {world | items <- List.append world.items [Star]}
     _ -> world
+
+-- Animate
+
+animate interpolation time animated =
+    case animated of
+        Still value -> value
+        Transition from to duration -> ease Easing.linear interpolation from to duration time
 
 -- Display
 
@@ -62,8 +69,7 @@ display world =
         place x = collage world.width world.height [x]
         active x = clickable (Signal.message clicks.address x)
         draw item = case item of
-            Background {color} ->
-                let (Still bg) = color in place <| filled bg <| rect (toFloat world.width) (toFloat world.height)
+            Background {color} -> place <| filled (animate Easing.color world.time color) <| rect (toFloat world.width) (toFloat world.height)
             NorthHalf -> place <| move (0,-gap) <| north line fill radius
             SouthHalf -> active South <| place <| move (0,gap) <| rotate (degrees 180) <| north line fill radius
             Star -> place <| move (gap*5,-gap*5) <| star world.time (radius/15)
