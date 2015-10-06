@@ -19,12 +19,12 @@ start u =
     case u of
         Viewport (w,h) -> {width=w,height=h,time=0,items=[
             Background {color=Transition white black 5000},
-            NorthHalf,
+            NorthHalf {color=Transition black white 5000},
             SouthHalf]
         }
 
 type Animated a = Still a | Transition a a Float
-type Item = Background {color:Animated Color} | NorthHalf | SouthHalf | Star
+type Item = Background {color:Animated Color} | NorthHalf {color:Animated Color} | SouthHalf | Star
 
 -- Update
 
@@ -70,7 +70,7 @@ display world =
         active x = clickable (Signal.message clicks.address x)
         draw item = case item of
             Background {color} -> place <| filled (animate Easing.color world.time color) <| rect (toFloat world.width) (toFloat world.height)
-            NorthHalf -> place <| move (0,-gap) <| north line fill radius
+            NorthHalf {color} -> place <| move (0,-gap) <| north (animate Easing.color world.time color) fill radius
             SouthHalf -> active South <| place <| move (0,gap) <| rotate (degrees 180) <| north line fill radius
             Star -> place <| move (gap*5,-gap*5) <| star world.time (radius/15)
     in layers <| List.map draw world.items
