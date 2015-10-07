@@ -68,9 +68,10 @@ display world =
         fill = ease Easing.linear Easing.color gray black 5000 world.time
         place x = collage world.width world.height [x]
         active x = clickable (Signal.message clicks.address x)
+        animateColor = animate Easing.color world.time
         draw item = case item of
-            Background {color} -> place <| filled (animate Easing.color world.time color) <| rect (toFloat world.width) (toFloat world.height)
-            NorthHalf {color} -> place <| move (0,-gap) <| north (animate Easing.color world.time color) fill radius
+            Background {color} -> place <| filled (animateColor color) <| rect (toFloat world.width) (toFloat world.height)
+            NorthHalf {color} -> place <| move (0,-gap) <| north (animateColor color) fill radius
             SouthHalf -> active South <| place <| move (0,gap) <| rotate (degrees 180) <| north line fill radius
             Star -> place <| move (gap*5,-gap*5) <| star world.time (radius/15)
     in layers <| List.map draw world.items
