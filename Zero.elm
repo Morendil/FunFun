@@ -71,7 +71,7 @@ display world =
         draw item = case item of
             Background {color} -> place <| filled (animateColor color) <| rect (toFloat world.width) (toFloat world.height)
             NorthHalf {color} ->
-                place <| move (0,-gap) <| rotate (degrees 180) <| north (animateColor color) fill radius
+                place <| move (0,-gap) <| rotate (degrees   0) <| north (animateColor color) fill radius
             SouthHalf {color} -> active South <|
                 place <| move (0, gap) <| rotate (degrees 180) <| north (animateColor color) fill radius
             Star -> place <| move (gap*5,-gap*5) <| star world.time (radius/15)
