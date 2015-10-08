@@ -20,11 +20,11 @@ start u =
         Viewport (w,h) -> {width=w,height=h,time=0,items=[
             Background {color=Transition white black 5000},
             NorthHalf {color=Transition black white 5000},
-            SouthHalf]
+            SouthHalf {color=Transition blue white 5000}]
         }
 
 type Animated a = Still a | Transition a a Float
-type Item = Background {color:Animated Color} | NorthHalf {color:Animated Color} | SouthHalf | Star
+type Item = Background {color:Animated Color} | NorthHalf {color:Animated Color} | SouthHalf {color:Animated Color} | Star
 
 -- Update
 
@@ -64,7 +64,6 @@ display world =
     let radius = toFloat world.height/3.4
         gap = radius / 14
         gray = (rgb 204 204 204)
-        line = ease Easing.linear Easing.color black white 5000 world.time
         fill = ease Easing.linear Easing.color gray black 5000 world.time
         place x = collage world.width world.height [x]
         active x = clickable (Signal.message clicks.address x)
@@ -72,7 +71,7 @@ display world =
         draw item = case item of
             Background {color} -> place <| filled (animateColor color) <| rect (toFloat world.width) (toFloat world.height)
             NorthHalf {color} -> place <| move (0,-gap) <| north (animateColor color) fill radius
-            SouthHalf -> active South <| place <| move (0,gap) <| rotate (degrees 180) <| north line fill radius
+            SouthHalf {color} -> active South <| place <| move (0,gap) <| rotate (degrees 180) <| north (animateColor color) fill radius
             Star -> place <| move (gap*5,-gap*5) <| star world.time (radius/15)
     in layers <| List.map draw world.items
 
