@@ -5,6 +5,7 @@ import Graphics.Element exposing (..)
 import Graphics.Input exposing (..)
 import Color exposing (..)
 import Easing exposing (..)
+import Generic exposing (..)
 
 import Signal
 import Window
@@ -19,12 +20,15 @@ start u =
     case u of
         Viewport (w,h) -> {width=w,height=h,time=0,items=[
             Background {color=Transition white black 5000},
-            NorthHalf {color=Transition black white 5000, angle=Transition 0 360 2000},
-            SouthHalf {color=Transition blue white 5000, angle=Still 180}]
+            NorthHalf {color=Transition black white 5000, angle=Still 0, pos=Transition (0,0) (0,-70) 5000},
+            SouthHalf {color=Transition blue white 5000, angle=Still 180, pos=Still (0,70)}]
         }
 
 type Animated a = Still a | Transition a a Float
-type Item = Background {color:Animated Color} | NorthHalf {color:Animated Color,angle:Animated Float} | SouthHalf {color:Animated Color,angle:Animated Float} | Star
+type Item = Background {color:Animated Color} |
+            NorthHalf {color:Animated Color,angle:Animated Float,pos: Animated (Float,Float)} |
+            SouthHalf {color:Animated Color,angle:Animated Float,pos: Animated (Float,Float)} |
+            Star
 
 -- Update
 
@@ -70,8 +74,8 @@ display world =
         animateColor = animate Easing.color world.time
         draw item = case item of
             Background {color} -> place <| filled (animateColor color) <| rect (toFloat world.width) (toFloat world.height)
-            NorthHalf {color,angle} ->
-                place <| move (0,-gap) <| rotate (degrees <| animate Easing.float world.time angle) <| north (animateColor color) fill radius
+            NorthHalf {color,angle,pos} ->
+                place <| move (vecTimes (animate (Easing.pair Easing.float) world.time pos) (21/100)) <| rotate (degrees <| animate Easing.float world.time angle) <| north (animateColor color) fill radius
             SouthHalf {color,angle} -> active South <|
                 place <| move (0, gap) <| rotate (degrees <| animate Easing.float world.time angle) <| north (animateColor color) fill radius
             Star -> place <| move (gap*5,-gap*5) <| star world.time (radius/15)
