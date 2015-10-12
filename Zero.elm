@@ -18,10 +18,10 @@ import Time exposing (fps)
 
 start u =
     case u of
-        Viewport (w,h) -> {width=w,height=h,time=0,items=[
-            Background {color=Transition white black 5000},
-            HalfCircle {color=Transition black white 5000, fill=Transition gray black 5000, angle=Still 0, pos=Transition (0,0) (0,-70) 5000},
-            HalfCircle {color=Transition black white 5000, fill=Transition gray black 5000, angle=Still 180, pos=Still (0,70)}]
+        Viewport (w,h) -> {width=w,height=h,time=0,start=0,items=[
+            Background {color=Still white},
+            HalfCircle {color=Still black, fill=Still gray, angle=Still 0,   pos=Transition (0,0) (0,-70) 5000},
+            HalfCircle {color=Still black, fill=Still gray, angle=Still 180, pos=Still (0,70)}]
         }
 
 type Animated a = Still a | Transition a a Float
@@ -31,11 +31,16 @@ type Item = Background {color:Animated Color} |
 
 -- Update
 
+animateItems = [
+    Background {color=Transition white black 5000},
+    HalfCircle {color=Transition black white 5000, fill=Transition gray black 5000, angle=Still 0, pos=Still (0,-70)},
+    HalfCircle {color=Transition black white 5000, fill=Transition gray black 5000, angle=Still 180, pos=Still (0,70)}]
+
 update u world =
   case u of
     Viewport (w,h) -> {world | width <- w, height <- h}
     Frame dt -> {world | time <- world.time + dt}
-    Action South -> {world | items <- List.append world.items [Star]}
+    Action South -> {world | items <- List.append animateItems [Star], start <- world.time}
     _ -> world
 
 -- Animate
@@ -69,8 +74,8 @@ display world =
         gray = (rgb 204 204 204)
         place x = collage world.width world.height [x]
         active x = clickable (Signal.message clicks.address x)
-        animateColor = animate Easing.color (max 0 (world.time-5000))
-        animatePosition = animate (Easing.pair Easing.float) (max 0 (world.time-5000))
+        animateColor = animate Easing.color (max 0 (world.time-world.start))
+        animatePosition = animate (Easing.pair Easing.float) (max 0 (world.time-world.start))
         draw item = case item of
             Background {color} -> place <| filled (animateColor color) <| rect (toFloat world.width) (toFloat world.height)
             HalfCircle {color,fill,angle,pos} -> active South <|
