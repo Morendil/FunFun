@@ -69,11 +69,12 @@ display world =
         gray = (rgb 204 204 204)
         place x = collage world.width world.height [x]
         active x = clickable (Signal.message clicks.address x)
-        animateColor = animate Easing.color world.time
+        animateColor = animate Easing.color (max 0 (world.time-5000))
+        animatePosition = animate (Easing.pair Easing.float) (max 0 (world.time-5000))
         draw item = case item of
             Background {color} -> place <| filled (animateColor color) <| rect (toFloat world.width) (toFloat world.height)
             HalfCircle {color,fill,angle,pos} -> active South <|
-                place <| move (vecTimes (animate (Easing.pair Easing.float) world.time pos) (21/100)) <|
+                place <| move (vecTimes (animatePosition pos) (21/100)) <|
                 rotate (degrees <| animate Easing.float world.time angle) <| north (animateColor color) (animateColor fill) radius
             Star -> place <| move (gap*5,-gap*5) <| star world.time (radius/15)
     in layers <| List.map draw world.items
